@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barber King · Reserva tu hora</title>
+<meta name="description" content="Reserva tu turno en línea: mira los horarios libres en tiempo real y agenda en segundos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#000000;      /* negro del cartel */
+  --ink-2:#15120D;    /* paneles */
+  --ink-3:#332B1E;    /* bordes / hover */
+  --enamel:#F7F1E3;   /* texto */
+  --soft:#BDB19A;     /* texto secundario */
+  --red:#C8102E;      /* rojo del poste */
+  --brass:#F2B233;    /* dorado Barber King */
+  --dim:#6E6452;      /* deshabilitado */
+  --free:#3FB67A;     /* disponible */
+  --busy:#E0485C;     /* ocupado */
+  --r-lg:18px; --r-md:12px; --r-sm:8px;
+  --display:"Big Shoulders Display", Impact, sans-serif;
+  --body:"Archivo", system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ink);color:var(--enamel);font:16px/1.55 var(--body)}
+a{color:inherit}
+img,video{max-width:100%;display:block}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--brass);outline-offset:2px;border-radius:4px}
+.wrap{width:min(1160px,100% - 40px);margin-inline:auto}
+.hidden{display:none!important}
+body:not(.is-admin) .admin-only{display:none!important}
+
+/* ---------- Header ---------- */
+.top{position:sticky;top:0;z-index:30;background:rgba(0,0,0,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--ink-3)}
+.top .wrap{display:flex;align-items:center;gap:18px;height:68px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;min-width:0}
+.brand .logo{width:46px;height:46px;flex:none;border-radius:50%;box-shadow:0 0 0 1.5px var(--brass)}
+.brand strong{font:800 24px/1 var(--display);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav{display:flex;gap:4px;margin-left:auto}
+.nav a{padding:8px 12px;border-radius:999px;text-decoration:none;color:var(--soft);font-weight:500}
+.nav a:hover{color:var(--enamel);background:var(--ink-2)}
+.btn{white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;cursor:pointer;border-radius:999px;padding:12px 22px;font-weight:700;text-decoration:none;transition:transform .15s, background .15s}
+.btn:active{transform:scale(.97)}
+.btn-red{background:var(--brass);color:#120d02}
+.btn-red:hover{background:#FFC64F}
+.btn-ghost{background:transparent;border:1.5px solid var(--ink-3);color:var(--enamel)}
+.btn-ghost:hover{border-color:var(--soft)}
+.btn-brass{background:transparent;border:1.5px solid var(--brass);color:var(--brass)}
+.btn-sm{padding:7px 14px;font-size:14px}
+@media (max-width:820px){.nav{display:none}.top .btn-red{margin-left:auto}}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--ink-3)}
+.hero .wrap{padding:36px 0 64px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.banner{width:100%;height:auto;margin:0 0 36px}
+.hero-row{display:grid;grid-template-columns:1fr auto;gap:40px;align-items:end}
+.hero .slogan{font-size:clamp(18px,2.2vw,22px);color:var(--soft);max-width:34ch;margin:0 0 28px}
+.hero .actions{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:34px}
+.now{display:inline-flex;flex-wrap:wrap;align-items:center;gap:14px 22px;background:var(--ink-2);border:1px solid var(--ink-3);border-radius:var(--r-lg);padding:14px 20px}
+.now .clock{font:800 34px/1 var(--display);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.now .date{color:var(--soft)}
+.pill{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:14px;padding:5px 12px;border-radius:999px}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.pill.open{color:var(--free);background:rgba(63,182,122,.12)}
+.pill.closed{color:var(--busy);background:rgba(224,72,92,.12)}
+
+/* El poste: el único elemento en movimiento constante */
+.pole{display:flex;flex-direction:column;align-items:center}
+.pole .cap{width:74px;height:24px;background:linear-gradient(90deg,#8d6a22,var(--brass) 45%,#f3d58b 55%,#8d6a22);border-radius:14px 14px 4px 4px}
+.pole .cap.bottom{border-radius:4px 4px 14px 14px}
+.pole .glass{width:56px;height:230px;border-radius:6px;overflow:hidden;position:relative;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+.pole .glass::before{content:"";position:absolute;inset:-60px 0 0;background:repeating-linear-gradient(-35deg,var(--red) 0 22px,#fff 22px 44px,#2D5FB0 44px 66px,#fff 66px 88px);animation:spin 2.4s linear infinite}
+.pole .glass::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.35),transparent 30%,rgba(255,255,255,.45) 48%,transparent 62%,rgba(0,0,0,.4))}
+@keyframes spin{to{transform:translateY(107px)}}
+@media (prefers-reduced-motion:reduce){.pole .glass::before{animation:none}}
+@media (max-width:820px){
+  .hero .wrap{padding:20px 0 44px}
+  .banner{margin-bottom:24px}
+  .hero-row{grid-template-columns:1fr}
+  .pole{display:none}
+}
+
+/* ---------- Secciones ---------- */
+section{padding:72px 0}
+section + section{border-top:1px solid var(--ink-3)}
+.head{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px 24px;margin-bottom:28px}
+.head h2{font:800 clamp(40px,6vw,64px)/.95 var(--display);margin:0}
+.head p{margin:6px 0 0;color:var(--soft);max-width:56ch}
+
+/* ---------- Reservas ---------- */
+.book{display:grid;grid-template-columns:minmax(300px,400px) 1fr;gap:24px;align-items:start}
+@media (max-width:900px){.book{grid-template-columns:1fr}}
+.card{background:var(--ink-2);border:1px solid var(--ink-3);border-radius:var(--r-lg);padding:20px}
+.cal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-top h3{margin:0;font:800 28px/1 var(--display)}
+.icon-btn{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--ink-3);background:transparent;cursor:pointer;display:grid;place-items:center}
+.icon-btn:hover:not(:disabled){border-color:var(--soft)}
+.icon-btn:disabled{opacity:.3;cursor:default}
+.dow,.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.dow span{text-align:center;font-size:13px;color:var(--soft);padding-bottom:4px}
+.day{aspect-ratio:1;border-radius:var(--r-sm);border:1.5px solid transparent;background:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:600;position:relative}
+.day:hover:not(:disabled){border-color:var(--soft)}
+.day:disabled{background:transparent;color:var(--dim);cursor:default}
+.day.today{box-shadow:inset 0 0 0 1.5px var(--brass)}
+.day.sel{background:var(--enamel);color:var(--ink)}
+.day .dot{width:6px;height:6px;border-radius:50%}
+.day .dot.free{background:var(--free)}
+.day .dot.few{background:var(--brass)}
+.day .dot.full{background:var(--busy)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:16px;font-size:14px;color:var(--soft)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+.slots-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between;margin-bottom:16px}
+.slots-head h3{margin:0;font:800 28px/1.05 var(--display)}
+.slots-head .count{color:var(--soft)}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.slot{border-radius:var(--r-md);padding:12px 8px;text-align:center;border:1.5px solid;background:transparent;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.slot b{font:800 24px/1 var(--display);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.slot small{font-size:12.5px;font-weight:600}
+.slot.free{border-color:rgba(63,182,122,.55);color:var(--enamel)}
+.slot.free small{color:var(--free)}
+.slot.free:hover{background:rgba(63,182,122,.12);border-color:var(--free)}
+.slot.busy{border-color:transparent;background:rgba(224,72,92,.13);color:#e9a6af;cursor:not-allowed}
+.slot.busy b{text-decoration:line-through;text-decoration-thickness:2px}
+.slot.blocked{border-color:transparent;background:rgba(175,192,216,.08);color:var(--dim);cursor:not-allowed}
+.slot.past{border-color:transparent;background:transparent;color:var(--dim);cursor:not-allowed}
+.empty{padding:28px;border:1.5px dashed var(--ink-3);border-radius:var(--r-md);color:var(--soft);text-align:center}
+.notice{margin-top:14px;font-size:14px;color:var(--soft)}
+.notice.warn{color:#f0c36d}
+
+/* ---------- Servicios: tablero de precios ---------- */
+.menu{columns:2 360px;column-gap:56px}
+.menu li{break-inside:avoid;display:flex;align-items:baseline;gap:10px;padding:14px 0;border-bottom:1px solid var(--ink-3)}
+.menu .n{font-weight:600;font-size:18px}
+.menu .lead{flex:1;border-bottom:2px dotted var(--dim);transform:translateY(-4px)}
+.menu .p{font:800 26px/1 var(--display);color:var(--brass);font-variant-numeric:tabular-nums}
+.menu ul{list-style:none;margin:0;padding:0}
+
+/* ---------- Galerías ---------- */
+.uploader{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:22px;padding:14px;border:1.5px dashed var(--brass);border-radius:var(--r-md);background:rgba(212,166,74,.06)}
+.uploader input[type=text],.uploader input[type=url]{flex:1;min-width:200px}
+.uploader textarea{flex:1 1 100%;min-height:64px}
+.ph.social{cursor:default;background:#fff}
+.ph.social iframe,.vd iframe.ig,.vd iframe.tt{width:100%;border:0;display:block;background:#fff}
+.ph.social iframe,.vd iframe.ig{height:560px;aspect-ratio:auto}
+.vd iframe.tt{height:740px;aspect-ratio:auto}
+.photos{columns:3 260px;column-gap:14px}
+.ph{break-inside:avoid;margin:0 0 14px;position:relative;border-radius:var(--r-md);overflow:hidden;background:var(--ink-2);cursor:zoom-in}
+.ph img{width:100%;height:auto}
+.ph figcaption{position:absolute;inset:auto 0 0;padding:28px 12px 10px;font-size:14px;background:linear-gradient(transparent,rgba(5,12,25,.85))}
+.videos{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.vd{position:relative;border-radius:var(--r-md);overflow:hidden;background:#000}
+.vd video,.vd iframe{width:100%;aspect-ratio:9/12;object-fit:cover;border:0;display:block;background:#000}
+.vd.yt iframe{aspect-ratio:16/9}
+.vd p{margin:0;padding:10px 12px;background:var(--ink-2);font-size:14px}
+.del{position:absolute;top:8px;right:8px;z-index:2;background:rgba(5,12,25,.8);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer}
+.del.arm{background:var(--busy);border-color:var(--busy)}
+
+/* ---------- Contacto ---------- */
+.contact{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:28px}
+.contact h3{margin:0 0 8px;font:800 24px/1 var(--display);color:var(--brass)}
+.contact p{margin:0;color:var(--soft)}
+footer{padding:28px 0 90px;color:var(--dim);font-size:14px;border-top:1px solid var(--ink-3)}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+footer button{background:none;border:0;color:var(--dim);cursor:pointer;text-decoration:underline;padding:0}
+.wa-float{position:fixed;right:18px;bottom:18px;z-index:25;width:58px;height:58px;border-radius:50%;background:#25D366;display:grid;place-items:center;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.wa-float svg{width:30px;height:30px;fill:#fff}
+
+/* ---------- Formularios / modales ---------- */
+label{display:block;font-size:14px;font-weight:600;margin:0 0 6px;color:var(--soft)}
+input,select,textarea{width:100%;background:var(--ink);border:1.5px solid var(--ink-3);border-radius:var(--r-sm);padding:11px 12px}
+input:focus,select:focus,textarea:focus{border-color:var(--brass);outline:none}
+textarea{min-height:120px;resize:vertical}
+.field{margin-bottom:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(4,10,22,.72);display:grid;place-items:center;padding:16px}
+.modal{width:min(480px,100%);max-height:calc(100vh - 32px);overflow:auto;background:var(--ink-2);border:1px solid var(--ink-3);border-radius:var(--r-lg);padding:24px;animation:pop .18s ease-out}
+.modal.wide{width:min(860px,100%)}
+@keyframes pop{from{transform:translateY(10px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.modal{animation:none}}
+.modal h3{margin:0 0 4px;font:800 32px/1 var(--display)}
+.modal .sub{margin:0 0 18px;color:var(--soft)}
+.modal .foot{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px}
+.err{color:#ff8d9b;font-size:14px;min-height:20px;margin:4px 0 6px}
+.ticket{border:1.5px dashed var(--brass);border-radius:var(--r-md);padding:16px;margin:0 0 18px}
+.ticket div{display:flex;justify-content:space-between;gap:12px;padding:4px 0}
+.ticket span{color:var(--soft)}
+.tabs{display:flex;gap:6px;margin:0 0 18px;flex-wrap:wrap}
+.tabs button{border:1.5px solid var(--ink-3);background:transparent;border-radius:999px;padding:7px 16px;cursor:pointer;font-weight:600}
+.tabs button[aria-selected=true]{background:var(--enamel);color:var(--ink);border-color:var(--enamel)}
+.agenda{list-style:none;margin:0;padding:0}
+.agenda li{display:grid;grid-template-columns:118px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--ink-3)}
+.agenda .t{white-space:nowrap;font:800 22px/1 var(--display);font-variant-numeric:tabular-nums}
+.agenda .who small{display:block;color:var(--soft)}
+.agenda .st-free{color:var(--free)}
+.agenda .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.agenda .st-blocked{color:var(--dim)}
+.hrs{display:grid;gap:8px}
+.hr{display:grid;grid-template-columns:140px 1fr auto 1fr;gap:10px;align-items:center}
+.hr label{display:flex;align-items:center;gap:8px;margin:0;color:var(--enamel);font-weight:500;cursor:pointer}
+.hr label input{width:auto;accent-color:var(--brass)}
+.hr span{color:var(--soft)}
+.hr:has(input[type=checkbox]:not(:checked)) input[type=time]{opacity:.35}
+.daysel{display:flex;flex-wrap:wrap;gap:8px}
+.daysel label{display:flex;align-items:center;gap:6px;margin:0;padding:7px 12px;border:1.5px solid var(--ink-3);border-radius:999px;color:var(--enamel);cursor:pointer;font-weight:500}
+.daysel input{width:auto}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;background:var(--enamel);color:var(--ink);padding:12px 20px;border-radius:999px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.demo-bar{background:var(--brass);color:#1b1404;font-size:14px;text-align:center;padding:7px 12px}
+.lightbox{position:fixed;inset:0;z-index:55;background:rgba(3,8,18,.94);display:grid;place-items:center;padding:20px}
+.lightbox img{max-height:84vh;max-width:min(1100px,100%);border-radius:var(--r-md)}
+.lightbox p{text-align:center;color:var(--soft);margin:12px 0 0}
+.lightbox .icon-btn{position:absolute;background:rgba(21,18,13,.85)}
+.lightbox .x{top:16px;right:16px}.lightbox .pv{left:16px;top:50%}.lightbox .nx{right:16px;top:50%}
+</style>
+</head>
+<body>
+
+<div id="demoBar" class="demo-bar hidden">Modo de prueba: las reservas se guardan solo en este navegador. Conecta Firebase (ver GUIA.md) para que funcionen con todos tus clientes.</div>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#inicio"><span class="logo" data-logo></span><strong data-name></strong></a>
+    <nav class="nav" aria-label="Secciones">
+      <a href="#reservar">Reservar</a><a href="#servicios">Servicios</a><a href="#fotos">Fotos</a><a href="#videos">Videos</a><a href="#contacto">Contacto</a>
+    </nav>
+    <a class="btn btn-red btn-sm" href="#reservar">Reservar turno</a>
+  </div>
+</header>
+
+<main id="inicio">
+  <div class="hero">
+    <div class="wrap">
+      <h1 class="sr" data-name></h1>
+      <img class="banner" id="banner" src="banner.jpg" alt="" width="2000" height="360">
+      <div class="hero-row">
+      <div>
+        <p class="slogan" data-slogan></p>
+        <div class="actions">
+          <a class="btn btn-red" href="#reservar">Ver turnos disponibles</a>
+          <a class="btn btn-ghost" href="#fotos">Ver trabajos</a>
+        </div>
+        <div class="now" aria-live="off">
+          <span class="clock" id="clock">--:--</span>
+          <span class="date" id="today"></span>
+          <span class="pill" id="openPill"></span>
+        </div>
+      </div>
+      <div class="pole" aria-hidden="true"><div class="cap"></div><div class="glass"></div><div class="cap bottom"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <section id="reservar">
+    <div class="wrap">
+      <div class="head">
+        <div><h2>Reserva tu turno</h2><p>Elige el día y la hora. Los turnos se actualizan en vivo: si alguien reserva, lo verás ocupado al instante.</p></div>
+      </div>
+      <div class="book">
+        <div class="card">
+          <div class="cal-top">
+            <button class="icon-btn" id="prevM" aria-label="Mes anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
+            <h3 id="monthLabel"></h3>
+            <button class="icon-btn" id="nextM" aria-label="Mes siguiente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>
+          </div>
+          <div class="dow"><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span><span>Do</span></div>
+          <div class="days" id="days"></div>
+          <div class="legend"><span><i style="background:var(--free)"></i>Con turnos libres</span><span><i style="background:var(--brass)"></i>Quedan pocos</span><span><i style="background:var(--busy)"></i>Lleno</span></div>
+        </div>
+        <div class="card">
+          <div class="slots-head"><h3 id="slotsTitle">Elige un día</h3><span class="count" id="slotsCount"></span></div>
+          <div class="slots" id="slots"></div>
+          <div class="legend"><span><i style="background:var(--free)"></i>Disponible</span><span><i style="background:var(--busy)"></i>Ocupado</span><span><i style="background:var(--dim)"></i>No disponible</span></div>
+          <p class="notice" id="liveNote"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="servicios">
+    <div class="wrap">
+      <div class="head"><div><h2>Servicios</h2></div></div>
+      <div class="menu"><ul id="services"></ul></div>
+    </div>
+  </section>
+
+  <section id="fotos">
+    <div class="wrap">
+      <div class="head"><div><h2>Fotos de nuestros cortes</h2><p>Trabajos reales hechos en la barbería.</p></div></div>
+      <div class="uploader admin-only">
+        <input type="file" id="photoFile" accept="image/*" multiple class="hidden">
+        <button class="btn btn-brass btn-sm" id="photoBtn">Subir fotos</button>
+        <input type="text" id="photoCap" placeholder="Descripción (opcional), ej.: Fade con diseño">
+        <textarea id="photoLinks" rows="2" placeholder="…o pega enlaces de publicaciones de Instagram (uno por línea)"></textarea>
+        <button class="btn btn-ghost btn-sm" id="photoLinkBtn">Agregar enlaces</button>
+        <span class="notice" id="photoStatus" style="margin:0"></span>
+      </div>
+      <div class="photos" id="photos"></div>
+    </div>
+  </section>
+
+  <section id="videos">
+    <div class="wrap">
+      <div class="head"><div><h2>Videos del trabajo</h2><p>Mira el proceso de principio a fin.</p></div></div>
+      <div class="uploader admin-only">
+        <input type="file" id="videoFile" accept="video/*" multiple class="hidden">
+        <button class="btn btn-brass btn-sm" id="videoBtn">Subir videos</button>
+        <input type="text" id="videoCap" placeholder="Descripción (opcional)">
+        <textarea id="ytUrl" rows="2" placeholder="…o pega enlaces de TikTok, Instagram (reels) o YouTube, uno por línea"></textarea>
+        <button class="btn btn-ghost btn-sm" id="ytBtn">Agregar enlaces</button>
+        <span class="notice" id="videoStatus" style="margin:0"></span>
+      </div>
+      <div class="videos" id="videosGrid"></div>
+    </div>
+  </section>
+
+  <section id="contacto">
+    <div class="wrap">
+      <div class="head"><div><h2>Visítanos</h2></div></div>
+      <div class="contact">
+        <div id="cAddrBox"><h3>Dirección</h3><p id="cAddr"></p></div>
+        <div><h3>Horario</h3><p id="cHours"></p></div>
+        <div><h3>WhatsApp</h3><p><a id="cWa" target="_blank" rel="noopener"></a></p></div>
+        <div id="cIgBox"><h3>Instagram y TikTok</h3><p><a id="cIg" target="_blank" rel="noopener"></a><br><a id="cTt" target="_blank" rel="noopener"></a></p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© <span id="year"></span> <span data-name></span></span>
+    <span><button id="adminLink">Acceso del barbero</button><span class="admin-only"> · <button id="openPanel">Panel</button> · <button id="logoutBtn">Salir</button></span></span>
+  </div>
+</footer>
+
+<a class="wa-float" id="waFloat" target="_blank" rel="noopener" aria-label="Escribir por WhatsApp"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.9-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg></a>
+
+<div id="modalRoot"></div>
+
+<script type="module">
+/* =====================================================================
+   CONFIGURACIÓN — rellena estos datos siguiendo GUIA.md
+   Mientras FIREBASE_CONFIG esté vacío, la página funciona en "modo de
+   prueba" (todo se guarda solo en el navegador donde la abres).
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCRVVQG7Xmy1yf2JWmVxyptHau-wEUtvTM",
+  authDomain: "barber-king-b7579.firebaseapp.com",
+  projectId: "barber-king-b7579",
+  storageBucket: "barber-king-b7579.firebasestorage.app",
+  messagingSenderId: "1078531403362",
+  appId: "1:1078531403362:web:9f9a33c63b0f12fd1b2b3b"
+};
+const ADMIN_EMAIL = "jherrerasojo@gmail.com";                       // correo con el que entras como barbero
+const CLOUDINARY = { cloudName: "", uploadPreset: "" };   // opcional: necesario para subir videos
+
+/* Datos iniciales. Se pueden cambiar luego desde el Panel del barbero. */
+const DEFAULTS = {
+  name: "Barber King",
+  slogan: "Cortes, fades y barba con acabado de rey. Elige tu hora y llega directo a la silla.",
+  whatsapp: "56932819363",
+  address: "Av. Ecuador 4678",
+  instagram: "barber2king",
+  tiktok: "barber2king",
+  // Horario por día (0=domingo … 6=sábado). Un día sin horario = cerrado.
+  hours: {
+    0: {open:"10:00", close:"22:00"}, 1: {open:"10:00", close:"22:00"}, 2: {open:"10:00", close:"22:00"},
+    3: {open:"10:00", close:"22:00"}, 4: {open:"10:00", close:"22:00"},
+    5: {open:"09:00", close:"22:00"}, 6: {open:"09:00", close:"22:00"}
+  },
+  slotMin: 30,
+  services: "Corte clásico\nFade / degradado\nBarba\nCorte + barba\nCejas\nCorte niño\nMechas platinadas\nPlatinado global\nKeratina para caballero\nOndulación permanente",
+  logo: ""
+};
+const DAYS_AHEAD = 45;
+/* Contraseña del modo de prueba (vista previa). Con Firebase conectado se usa
+   el correo y la contraseña del barbero creados en Firebase (GUIA.md, paso 2). */
+const DEMO_PASSWORD_SHA256 = "9002d5b292d60e227028a860425b7f1c69a5cc17e888a92c34cd2bfa03a2b60b";
+const TZ = "America/Santiago";   // hora oficial de la barbería            // cuántos días hacia adelante se puede reservar
+
+/* ===================================================================== */
+const $ = s => document.querySelector(s);
+// Fecha y hora actuales en la zona de la barbería (aunque el visitante esté en otro país)
+const now = () => { try { return new Date(new Date().toLocaleString("en-US",{timeZone:TZ})); } catch { return new Date(); } };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const toMin = t => { const [h,m] = t.split(":").map(Number); return h*60+m; };
+const fromMin = m => `${pad(Math.floor(m/60))}:${pad(m%60)}`;
+const fmt12 = t => { let [h,m] = t.split(":").map(Number); const ap = h>=12 ? "p. m." : "a. m."; h = h%12 || 12; return `${h}:${pad(m)} ${ap}`; };
+const DAY_NAMES = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const fmtLong = d => d.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"});
+
+const S = { cfg:{...DEFAULTS}, slots:{}, slotsLoaded:false, media:[], admin:false,
+            month:null, sel:null };
+
+/* ---------------- Almacenamiento: modo de prueba ---------------- */
+function demoStore(){
+  const K = "barberia_demo_v1";
+  const load = () => { try { return JSON.parse(localStorage.getItem(K)) || {}; } catch { return {}; } };
+  let mem = load();
+  const subs = new Set(), authSubs = new Set();
+  let admin = false; try { admin = sessionStorage.getItem("bk_admin") === "1"; } catch {}
+  const save = () => { try { localStorage.setItem(K, JSON.stringify(mem)); } catch { throw new Error("El navegador no tiene espacio para guardar más archivos en modo de prueba."); } };
+  const emit = () => subs.forEach(f => f());
+  addEventListener("storage", e => { if (e.key === K) { mem = load(); emit(); } });
+  const on = f => { subs.add(f); setTimeout(f); return () => subs.delete(f); };
+  const coll = k => (mem[k] ||= {});
+  return {
+    mode: "demo",
+    onConfig: cb => on(() => cb(mem.config || null)),
+    saveConfig: async c => { mem.config = c; save(); emit(); },
+    onSlots: (from, to, cb) => on(() => { const o = {}; for (const [k,v] of Object.entries(coll("slots"))) if (v.date >= from && v.date <= to) o[k] = v; cb(o); }),
+    book: async b => { const id = b.date+"_"+b.time; if (coll("slots")[id]) throw new Error("taken");
+      coll("slots")[id] = {date:b.date, time:b.time, status:"booked"}; coll("bookings")[id] = {...b}; save(); emit(); },
+    onBookings: (date, cb) => on(() => { const o = {}; for (const [k,v] of Object.entries(coll("bookings"))) if (v.date === date) o[k] = v; cb(o); }),
+    cancel: async id => { delete coll("slots")[id]; delete coll("bookings")[id]; save(); emit(); },
+    editBooking: async (oldId, b) => { const id = b.date+"_"+b.time;
+      if (id !== oldId) { if (coll("slots")[id]) throw new Error("taken"); delete coll("slots")[oldId]; delete coll("bookings")[oldId];
+        coll("slots")[id] = {date:b.date, time:b.time, status:"booked"}; }
+      coll("bookings")[id] = {...b}; save(); emit(); },
+    block: async (date, time) => { coll("slots")[date+"_"+time] = {date, time, status:"blocked"}; save(); emit(); },
+    onMedia: cb => on(() => cb(Object.entries(coll("media")).map(([id,v]) => ({id, ...v})).sort((a,b) => b.createdAt - a.createdAt))),
+    addMedia: async m => { const id = "m"+Date.now()+Math.random().toString(36).slice(2,6); coll("media")[id] = {...m, createdAt:Date.now()};
+      try { save(); } catch (e) { delete coll("media")[id]; throw e; } emit(); },
+    delMedia: async id => { delete coll("media")[id]; save(); emit(); },
+    onAuth: cb => { authSubs.add(cb); cb(admin); return () => authSubs.delete(cb); },
+    login: async (_e, pass) => {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pass || ""));
+      const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
+      if (hex !== DEMO_PASSWORD_SHA256) throw new Error("bad");
+      admin = true; try { sessionStorage.setItem("bk_admin","1"); } catch {} authSubs.forEach(f => f(true)); },
+    logout: async () => { admin = false; try { sessionStorage.removeItem("bk_admin"); } catch {} authSubs.forEach(f => f(false)); }
+  };
+}
+
+/* ---------------- Almacenamiento: Firebase (real, en vivo) ---------------- */
+async function firebaseStore(){
+  const B = "https://www.gstatic.com/firebasejs/10.12.2/";
+  const [{ initializeApp }, F, A] = await Promise.all([import(B+"firebase-app.js"), import(B+"firebase-firestore.js"), import(B+"firebase-auth.js")]);
+  const app = initializeApp(FIREBASE_CONFIG);
+  const db = F.getFirestore(app), auth = A.getAuth(app);
+  const logErr = e => { console.error(e); };
+  return {
+    mode: "firebase",
+    onConfig: cb => F.onSnapshot(F.doc(db,"config","main"), s => cb(s.exists() ? s.data() : null), e => { logErr(e); cb(null); }),
+    saveConfig: c => F.setDoc(F.doc(db,"config","main"), c),
+    onSlots: (from, to, cb, onErr) => F.onSnapshot(
+      F.query(F.collection(db,"slots"), F.where("date",">=",from), F.where("date","<=",to)),
+      s => { const o = {}; s.forEach(d => o[d.id] = d.data()); cb(o); }, e => { logErr(e); onErr && onErr(e); }),
+    book: async b => {
+      const id = b.date+"_"+b.time, batch = F.writeBatch(db);
+      batch.set(F.doc(db,"slots",id), {date:b.date, time:b.time, status:"booked", createdAt:F.serverTimestamp()});
+      batch.set(F.doc(db,"bookings",id), {date:b.date, time:b.time, name:b.name, phone:b.phone, service:b.service, createdAt:F.serverTimestamp()});
+      try { await batch.commit(); } catch (e) { if (e.code === "permission-denied") throw new Error("taken"); throw e; }
+    },
+    onBookings: (date, cb) => F.onSnapshot(F.query(F.collection(db,"bookings"), F.where("date","==",date)),
+      s => { const o = {}; s.forEach(d => o[d.id] = d.data()); cb(o); }, logErr),
+    cancel: async id => { const b = F.writeBatch(db); b.delete(F.doc(db,"slots",id)); b.delete(F.doc(db,"bookings",id)); await b.commit(); },
+    // Corrige datos o mueve una reserva a otro día/hora (solo el barbero)
+    editBooking: async (oldId, b) => {
+      const id = b.date+"_"+b.time, data = {date:b.date, time:b.time, name:b.name, phone:b.phone, service:b.service};
+      if (id === oldId) return F.updateDoc(F.doc(db,"bookings",id), data);
+      const target = await F.getDoc(F.doc(db,"slots",id)); if (target.exists()) throw new Error("taken");
+      const w = F.writeBatch(db);
+      w.delete(F.doc(db,"slots",oldId)); w.delete(F.doc(db,"bookings",oldId));
+      w.set(F.doc(db,"slots",id), {date:b.date, time:b.time, status:"booked", createdAt:F.serverTimestamp()});
+      w.set(F.doc(db,"bookings",id), {...data, createdAt:F.serverTimestamp()});
+      await w.commit();
+    },
+    block: (date, time) => F.setDoc(F.doc(db,"slots",date+"_"+time), {date, time, status:"blocked", createdAt:F.serverTimestamp()}),
+    onMedia: cb => F.onSnapshot(F.query(F.collection(db,"media"), F.orderBy("createdAt","desc")),
+      s => cb(s.docs.map(d => ({id:d.id, ...d.data()}))), logErr),
+    addMedia: m => F.addDoc(F.collection(db,"media"), {...m, createdAt:Date.now()}),
+    delMedia: id => F.deleteDoc(F.doc(db,"media",id)),
+    onAuth: cb => A.onAuthStateChanged(auth, u => cb(!!u && (!ADMIN_EMAIL || (u.email||"").toLowerCase() === ADMIN_EMAIL.toLowerCase()))),
+    login: (e, p) => A.signInWithEmailAndPassword(auth, e, p),
+    logout: () => A.signOut(auth)
+  };
+}
+
+/* ---------------- Archivos (fotos / videos / logo) ---------------- */
+function compressImage(file, maxSide, quality, maxBytes, type = "image/jpeg"){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      let side = maxSide, q = quality, out;
+      for (let i = 0; i < 6; i++) {
+        const k = Math.min(1, side / Math.max(img.width, img.height));
+        const c = document.createElement("canvas"); c.width = Math.round(img.width*k); c.height = Math.round(img.height*k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        out = c.toDataURL(type, q);
+        if (out.length * .75 <= maxBytes) break;
+        side *= .8; q = Math.max(.5, q - .08);
+      }
+      URL.revokeObjectURL(url); res(out);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("No se pudo leer la imagen.")); };
+    img.src = url;
+  });
+}
+const hasCloud = () => !!(CLOUDINARY.cloudName && CLOUDINARY.uploadPreset);
+async function uploadFile(file, kind){
+  if (hasCloud()) {
+    const fd = new FormData(); fd.append("file", file); fd.append("upload_preset", CLOUDINARY.uploadPreset);
+    const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/${kind === "video" ? "video" : "image"}/upload`, {method:"POST", body:fd});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error?.message || "No se pudo subir el archivo.");
+    return j.secure_url;
+  }
+  if (kind === "photo") return store.mode === "demo" ? compressImage(file, 1000, .72, 350*1024) : compressImage(file, 1400, .8, 850*1024);
+  throw new Error("Para subir videos desde el celular o el computador, configura Cloudinary (GUIA.md, paso 4). Mientras tanto puedes pegar un enlace de YouTube.");
+}
+const ytId = u => { const m = String(u).match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/); return m ? m[1] : null; };
+// Reconoce enlaces de YouTube, Instagram y TikTok
+function parseSocial(u){
+  u = String(u).trim(); if (!u) return null;
+  if (/youtu\.?be/.test(u)) { const id = ytId(u); return id ? {net:"yt", id} : {bad:u}; }
+  let m = u.match(/instagram\.com\/(?:[\w.]+\/)?(p|reel|reels|tv)\/([\w-]+)/);
+  if (m) return {net:"ig", id:m[2], path: m[1] === "p" ? "p" : "reel"};
+  m = u.match(/tiktok\.com\/.*\/(?:video|photo)\/(\d+)/);
+  if (m) return {net:"tt", id:m[1]};
+  if (/vm\.tiktok|vt\.tiktok/.test(u)) return {bad:u, short:true};
+  return {bad:u};
+}
+function embedHtml(e, title){
+  const t = esc(title || "Publicación");
+  if (e.net === "yt") return `<iframe src="https://www.youtube-nocookie.com/embed/${esc(e.id)}" title="${t}" allow="encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
+  if (e.net === "ig") return `<iframe class="ig" src="https://www.instagram.com/${e.path === "p" ? "p" : "reel"}/${esc(e.id)}/embed" title="${t}" loading="lazy" scrolling="no"></iframe>`;
+  if (e.net === "tt") return `<iframe class="tt" src="https://www.tiktok.com/embed/v2/${esc(e.id)}" title="${t}" allow="encrypted-media; fullscreen" allowfullscreen loading="lazy"></iframe>`;
+  return "";
+}
+
+/* ---------------- Logo por defecto (original) ---------------- */
+let logoSeq = 0;
+function defaultLogo(){
+  const id = "lg" + (logoSeq++);
+  const ini = S.cfg.name.replace(/^barber[ií]a\s+/i,"").split(/\s+/).filter(w => w.length > 2 || /^[A-Z]/.test(w)).map(w => w[0]).join("").slice(0,2).toUpperCase() || "B";
+  return `<svg viewBox="0 0 120 120" width="100%" height="100%" role="img" aria-label="Logo">
+  <defs><pattern id="${id}" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)"><rect width="12" height="12" fill="#fff"/><rect width="4" height="12" fill="#C8102E"/><rect x="6" width="4" height="12" fill="#2D5FB0"/></pattern></defs>
+  <circle cx="60" cy="60" r="57" fill="#0F2240" stroke="#D4A64A" stroke-width="4"/>
+  <circle cx="60" cy="60" r="48" fill="none" stroke="#D4A64A" stroke-width="1" stroke-dasharray="2 4"/>
+  <rect x="51" y="24" width="18" height="50" rx="3" fill="url(#${id})"/>
+  <rect x="47" y="18" width="26" height="8" rx="4" fill="#D4A64A"/><rect x="47" y="72" width="26" height="8" rx="4" fill="#D4A64A"/>
+  <text x="60" y="100" text-anchor="middle" font-family="Big Shoulders Display, Impact, sans-serif" font-weight="900" font-size="17" letter-spacing="2" fill="#F7F4EE">${esc(ini)}</text></svg>`;
+}
+
+/* ---------------- Reglas de horario ---------------- */
+// Horario de un día de la semana: {open, close} o null si está cerrado
+function dayHours(d){
+  const h = S.cfg.hours && (S.cfg.hours[d] || S.cfg.hours[String(d)]);
+  return h && h.open && h.close && toMin(h.close) > toMin(h.open) ? h : null;
+}
+function slotsFor(dateStr){
+  const c = S.cfg, h = dayHours(parseYmd(dateStr).getDay());
+  if (!h) return [];
+  const out = [], step = Math.max(10, Number(c.slotMin) || 30);
+  for (let m = toMin(h.open); m + step <= toMin(h.close); m += step) out.push(fromMin(m));
+  return out;
+}
+const nowMin = () => { const n = now(); return n.getHours()*60 + n.getMinutes(); };
+function slotState(dateStr, t){
+  const s = S.slots[dateStr+"_"+t];
+  if (s) return s.status === "blocked" ? "blocked" : "busy";
+  if (dateStr === ymd(now()) && toMin(t) <= nowMin()) return "past";
+  return "free";
+}
+const lastDay = () => { const d = now(); d.setDate(d.getDate() + DAYS_AHEAD); return ymd(d); };
+
+/* ---------------- Render ---------------- */
+function renderBrand(){
+  const c = S.cfg;
+  document.title = `${c.name} · Reserva tu turno`;
+  document.querySelectorAll("[data-name]").forEach(e => e.textContent = c.name);
+  document.querySelectorAll("[data-slogan]").forEach(e => e.textContent = c.slogan);
+  document.querySelectorAll("[data-logo]").forEach(e => {
+    e.innerHTML = `<img src="${esc(c.logo || "logo.jpg")}" alt="Logo de ${esc(c.name)}" style="width:100%;height:100%;object-fit:contain;border-radius:50%">`;
+  });
+  const wa = waLink(`Hola, quiero información sobre ${c.name}.`);
+  $("#waFloat").href = wa; $("#cWa").href = wa; $("#cWa").textContent = fmtPhone(c.whatsapp);
+  $("#cAddr").textContent = c.address; $("#cAddrBox").classList.toggle("hidden", !c.address);
+  $("#banner").alt = c.name;
+  $("#cHours").innerHTML = hoursSummary().map(l => esc(l)).join("<br>") || "Consulta por WhatsApp";
+  $("#cIgBox").classList.toggle("hidden", !c.instagram && !c.tiktok);
+  const ig = String(c.instagram||"").replace(/^@/,""), tt = String(c.tiktok||"").replace(/^@/,"");
+  $("#cIg").classList.toggle("hidden", !ig); $("#cTt").classList.toggle("hidden", !tt);
+  if (ig) { $("#cIg").href = `https://instagram.com/${encodeURIComponent(ig)}`; $("#cIg").textContent = "Instagram @" + ig; }
+  if (tt) { $("#cTt").href = `https://www.tiktok.com/@${encodeURIComponent(tt)}`; $("#cTt").textContent = "TikTok @" + tt; }
+  const ul = $("#services"); ul.innerHTML = "";
+  servicesList().forEach(s => { ul.insertAdjacentHTML("beforeend", `<li><span class="n">${esc(s.n)}</span>${s.p ? `<span class="lead"></span><span class="p">${esc(s.p)}</span>` : ""}</li>`); });
+}
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+// "Domingo a jueves: 10:00 a. m. a 10:00 p. m." agrupando días con el mismo horario
+function hoursSummary(){
+  const groups = new Map();
+  for (let d = 0; d < 7; d++) { const h = dayHours(d); if (!h) continue; const k = h.open + "-" + h.close; if (!groups.has(k)) groups.set(k, {h, days:[]}); groups.get(k).days.push(d); }
+  if (groups.size === 1 && [...groups.values()][0].days.length === 7) { const {h} = [...groups.values()][0]; return [`Todos los días: ${fmt12(h.open)} a ${fmt12(h.close)}`]; }
+  const label = days => {
+    const set = new Set(days);
+    if (days.length >= 3) for (let st = 0; st < 7; st++) {        // ¿forman un bloque seguido en la semana?
+      const run = Array.from({length:days.length}, (_, i) => (st + i) % 7);
+      if (run.every(x => set.has(x)) && !set.has((st + 6) % 7)) return `${cap(DAY_NAMES[run[0]])} a ${DAY_NAMES[run[run.length-1]]}`;
+    }
+    const ord = days.slice().sort((a,b) => ((a+6)%7) - ((b+6)%7)).map(i => DAY_NAMES[i]);
+    return cap(ord.length > 1 ? ord.slice(0,-1).join(", ") + " y " + ord[ord.length-1] : ord[0]);
+  };
+  return [...groups.values()].sort((a,b) => toMin(b.h.open) - toMin(a.h.open)).map(g => `${label(g.days)}: ${fmt12(g.h.open)} a ${fmt12(g.h.close)}`);
+}
+const fmtPhone = n => { n = String(n).replace(/\D/g,""); const m = n.match(/^56(9)(\d{4})(\d{4})$/); return m ? `+56 ${m[1]} ${m[2]} ${m[3]}` : "+" + n; };
+// Número del cliente → enlace de WhatsApp (asume Chile si no trae indicativo)
+const clientWa = p => { let d = String(p).replace(/\D/g,""); const intl = String(p).startsWith("+"); if (!intl && d.length === 9 && d[0] === "9") d = "56" + d; else if (!intl && d.length === 8) d = "569" + d; return `https://wa.me/${d}`; };
+const servicesList = () => String(S.cfg.services || "").split("\n").map(l => l.split("|").map(x => x.trim())).filter(a => a[0]).map(([n,p]) => ({n, p:p||""}));
+const waLink = msg => `https://wa.me/${String(S.cfg.whatsapp).replace(/\D/g,"")}?text=${encodeURIComponent(msg)}`;
+
+function renderClock(){
+  const n = now();
+  $("#clock").textContent = n.toLocaleTimeString("es-CL",{hour:"numeric",minute:"2-digit",second:"2-digit"});
+  $("#today").textContent = cap(n.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));
+  const th = dayHours(n.getDay()), open = !!th && nowMin() >= toMin(th.open) && nowMin() < toMin(th.close);
+  const p = $("#openPill"); p.className = "pill " + (open ? "open" : "closed");
+  p.textContent = open ? `Abierto ahora, hasta las ${fmt12(th.close)}` : "Cerrado ahora";
+}
+
+function renderCalendar(){
+  const m = S.month, today = ymd(now()), max = lastDay();
+  $("#monthLabel").textContent = cap(m.toLocaleDateString("es-CL",{month:"long",year:"numeric"}));
+  const first = new Date(m.getFullYear(), m.getMonth(), 1), lead = (first.getDay()+6)%7;
+  const n = new Date(m.getFullYear(), m.getMonth()+1, 0).getDate();
+  let h = "";
+  for (let i = 0; i < lead; i++) h += "<span></span>";
+  for (let d = 1; d <= n; d++) {
+    const ds = ymd(new Date(m.getFullYear(), m.getMonth(), d));
+    const all = slotsFor(ds), out = ds < today || ds > max || !all.length;
+    let dot = "";
+    if (!out) {
+      const free = all.filter(t => slotState(ds,t) === "free").length;
+      const cls = free === 0 ? "full" : free <= Math.max(2, all.length*.25) ? "few" : "free";
+      dot = `<span class="dot ${cls}"></span>`;
+    }
+    const lbl = parseYmd(ds).toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"});
+    h += `<button class="day${ds===today?" today":""}${ds===S.sel?" sel":""}" data-d="${ds}" ${out?"disabled":""} aria-label="${lbl}" aria-pressed="${ds===S.sel}">${d}${dot}</button>`;
+  }
+  $("#days").innerHTML = h;
+  const cm = now(); cm.setDate(1);
+  $("#prevM").disabled = m <= new Date(cm.getFullYear(), cm.getMonth(), 1);
+  const mx = parseYmd(max); $("#nextM").disabled = m.getFullYear()*12+m.getMonth() >= mx.getFullYear()*12+mx.getMonth();
+}
+
+function renderSlots(){
+  const box = $("#slots");
+  if (!S.sel) { $("#slotsTitle").textContent = "Elige un día"; $("#slotsCount").textContent = ""; box.innerHTML = `<div class="empty" style="grid-column:1/-1">Toca un día del calendario para ver sus horarios.</div>`; return; }
+  const all = slotsFor(S.sel);
+  $("#slotsTitle").textContent = cap(fmtLong(parseYmd(S.sel)));
+  if (!all.length) { $("#slotsCount").textContent = ""; box.innerHTML = `<div class="empty" style="grid-column:1/-1">Ese día no abrimos. Elige otro día.</div>`; return; }
+  const st = all.map(t => [t, slotState(S.sel, t)]);
+  const free = st.filter(x => x[1] === "free").length;
+  $("#slotsCount").textContent = free ? `${free} ${free === 1 ? "turno libre" : "turnos libres"}` : "Sin turnos libres";
+  const lab = {free:"Disponible", busy:"Ocupado", blocked:"No disponible", past:"Ya pasó"};
+  box.innerHTML = st.map(([t,s]) => `<button class="slot ${s}" data-t="${t}" ${s!=="free"?"disabled":""} aria-label="${fmt12(t)}, ${lab[s]}"><b>${fmt12(t).replace(/ [ap]\. m\./,"")}</b><small>${fmt12(t).slice(-5)} · ${lab[s]}</small></button>`).join("");
+}
+
+let lbIndex = 0;
+function renderMedia(){
+  const photos = S.media.filter(m => m.kind === "photo"), vids = S.media.filter(m => m.kind === "video");
+  const del = id => `<button class="del admin-only" data-del="${esc(id)}">Eliminar</button>`;
+  let li = 0;
+  $("#photos").innerHTML = photos.length ? photos.map(p => p.embed
+      ? `<figure class="ph social">${del(p.id)}${embedHtml(p.embed, p.caption)}</figure>`
+      : `<figure class="ph" data-i="${li++}">${del(p.id)}<img src="${esc(p.url)}" alt="${esc(p.caption || "Trabajo de la barbería")}" loading="lazy">${p.caption ? `<figcaption>${esc(p.caption)}</figcaption>` : ""}</figure>`).join("")
+    : `<div class="empty">${S.admin ? "Sube tus primeras fotos con el botón de arriba." : "Pronto verás aquí nuestros trabajos."}</div>`;
+  $("#videosGrid").innerHTML = vids.length ? vids.map(v => (v.embed || v.youtube)
+      ? (e => `<div class="vd${e.net === "yt" ? " yt" : ""}">${del(v.id)}${embedHtml(e, v.caption)}${v.caption ? `<p>${esc(v.caption)}</p>` : ""}</div>`)(v.embed || {net:"yt", id:v.youtube})
+      : `<div class="vd">${del(v.id)}<video src="${esc(v.url)}" controls playsinline preload="metadata"></video>${v.caption ? `<p>${esc(v.caption)}</p>` : ""}</div>`).join("")
+    : `<div class="empty">${S.admin ? "Sube videos o pega enlaces de TikTok, Instagram o YouTube." : "Pronto verás aquí videos de nuestro trabajo."}</div>`;
+}
+
+/* ---------------- Modales ---------------- */
+function openModal(html, wide){
+  $("#modalRoot").innerHTML = `<div class="overlay" id="ov"><div class="modal${wide?" wide":""}" role="dialog" aria-modal="true">${html}</div></div>`;
+  const ov = $("#ov");
+  ov.addEventListener("click", e => { if (e.target === ov || e.target.closest("[data-close]")) closeModal(); });
+  setTimeout(() => ov.querySelector("input,select,button:not([data-close])")?.focus(), 30);
+  return ov;
+}
+function closeModal(){ $("#modalRoot").innerHTML = ""; adminUnsub && adminUnsub(); adminUnsub = null; }
+addEventListener("keydown", e => { if (e.key === "Escape") { if ($("#lb")) $("#lb").remove(); else closeModal(); } });
+function toast(msg){ const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.append(t); setTimeout(() => t.remove(), 3200); }
+
+function openBooking(t){
+  const date = S.sel, svc = servicesList();
+  if (S.offline) {   // sin conexión con el sistema de reservas: reservar por WhatsApp
+    const msg = `Hola, quiero reservar en ${S.cfg.name} el ${fmtLong(parseYmd(date))} a las ${fmt12(t)}.`;
+    openModal(`<h3>Reserva por WhatsApp</h3><p class="sub">En este momento no pudimos conectar con el sistema de reservas. Escríbenos y te confirmamos la hora.</p>
+      <div class="foot"><button class="btn btn-ghost" data-close>Volver</button><a class="btn btn-red" href="${waLink(msg)}" target="_blank" rel="noopener">Reservar por WhatsApp</a></div>`);
+    return;
+  }
+  const ov = openModal(`
+    <h3>Confirma tu turno</h3>
+    <p class="sub">${cap(fmtLong(parseYmd(date)))} a las ${fmt12(t)}</p>
+    <form id="bf" novalidate>
+      <div class="field"><label for="bn">Tu nombre</label><input id="bn" autocomplete="name" maxlength="60" required></div>
+      <div class="field"><label for="bp">Celular / WhatsApp</label><input id="bp" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="9 1234 5678" required></div>
+      <div class="field"><label for="bs">Servicio</label><select id="bs">${svc.map(s => `<option>${esc(s.n)}${s.p ? " – " + esc(s.p) : ""}</option>`).join("")}</select></div>
+      <p class="err" id="be"></p>
+      <div class="foot"><button type="button" class="btn btn-ghost" data-close>Volver</button><button class="btn btn-red" id="bgo">Reservar turno</button></div>
+    </form>`);
+  ov.querySelector("#bf").addEventListener("submit", async e => {
+    e.preventDefault();
+    const name = $("#bn").value.trim(), phone = $("#bp").value.replace(/[^\d+]/g,""), service = $("#bs").value;
+    if (name.length < 2) return $("#be").textContent = "Escribe tu nombre.";
+    if (phone.replace(/\D/g,"").length < 7) return $("#be").textContent = "Escribe un número de celular válido.";
+    if (slotState(date, t) !== "free") return $("#be").textContent = "Ese turno acaba de ser tomado. Cierra y elige otra hora.";
+    const b = $("#bgo"); b.disabled = true; b.textContent = "Reservando…"; $("#be").textContent = "";
+    try {
+      await store.book({date, time:t, name, phone, service});
+      const msg = `Hola, soy ${name}. Reservé un turno en ${S.cfg.name} para el ${fmtLong(parseYmd(date))} a las ${fmt12(t)} (${service}).`;
+      ov.querySelector(".modal").innerHTML = `
+        <h3>Turno reservado</h3>
+        <p class="sub">Te esperamos. Llega 5 minutos antes.</p>
+        <div class="ticket"><div><span>Día</span><b>${cap(fmtLong(parseYmd(date)))}</b></div><div><span>Hora</span><b>${fmt12(t)}</b></div><div><span>Servicio</span><b>${esc(service)}</b></div><div><span>A nombre de</span><b>${esc(name)}</b></div></div>
+        <div class="foot"><button class="btn btn-ghost" data-close>Listo</button><a class="btn btn-red" href="${waLink(msg)}" target="_blank" rel="noopener">Avisar por WhatsApp</a></div>`;
+    } catch (err) {
+      b.disabled = false; b.textContent = "Reservar turno";
+      $("#be").textContent = err.message === "taken" ? "Ese turno acaba de ser tomado. Cierra y elige otra hora." : "No se pudo reservar. Revisa tu conexión e inténtalo de nuevo.";
+    }
+  });
+}
+
+function openLogin(){
+  const demo = store.mode === "demo";
+  const ov = openModal(`
+    <h3>Acceso del barbero</h3><p class="sub">Solo el barbero puede entrar: aquí se ven los nombres y celulares de quienes reservan.</p>
+    <form id="lf">${demo ? "" : `<div class="field"><label for="le">Correo</label><input id="le" type="email" autocomplete="username" required></div>`}
+    <div class="field"><label for="lp">Contraseña</label><input id="lp" type="password" autocomplete="current-password" required></div>
+    <p class="err" id="lerr"></p>
+    <div class="foot"><button type="button" class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-red">Entrar</button></div></form>`);
+  ov.querySelector("#lf").addEventListener("submit", async e => {
+    e.preventDefault();
+    try { await store.login(demo ? "" : $("#le").value.trim(), $("#lp").value); closeModal(); toast("Sesión iniciada."); }
+    catch { $("#lerr").textContent = demo ? "Contraseña incorrecta." : "Correo o contraseña incorrectos."; $("#lp").value = ""; $("#lp").focus(); }
+  });
+}
+
+/* ---------------- Panel del barbero ---------------- */
+let adminUnsub = null;
+function openPanel(tab = "agenda"){
+  const ov = openModal(`
+    <div style="display:flex;justify-content:space-between;align-items:start;gap:12px"><h3>Panel del barbero</h3><button class="icon-btn" data-close aria-label="Cerrar">✕</button></div>
+    <div class="tabs" role="tablist"><button data-tab="agenda">Agenda</button><button data-tab="ajustes">Datos y horario</button></div>
+    <div id="pBody"></div>`, true);
+  const show = t => {
+    ov.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+    adminUnsub && adminUnsub(); adminUnsub = null;
+    t === "agenda" ? panelAgenda() : panelSettings();
+  };
+  ov.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
+  show(tab);
+}
+
+function panelAgenda(day){
+  const body = $("#pBody");
+  body.innerHTML = `<div class="row2" style="align-items:end"><div class="field"><label for="ad">Día</label><input type="date" id="ad" value="${day || S.sel || ymd(now())}"></div><p class="notice" style="margin:0 0 22px">Las reservas aparecen aquí al instante.</p></div><ul class="agenda" id="ag"></ul>`;
+  let bookings = {};
+  const draw = () => {
+    if (!$("#ag")) return;
+    const d = $("#ad").value; if (!d) return;
+    const times = new Set(slotsFor(d));
+    Object.values(S.slots).forEach(s => s.date === d && times.add(s.time));
+    const list = [...times].sort();
+    if (!list.length) { $("#ag").innerHTML = `<li style="display:block" class="notice">Ese día está cerrado según tu horario.</li>`; return; }
+    $("#ag").innerHTML = list.map(t => {
+      const id = d+"_"+t, s = S.slots[id], b = bookings[id];
+      if (s && s.status === "booked") return `<li><span class="t">${fmt12(t)}</span><span class="who"><b>${esc(b?.name || "Reservado")}</b><small>${esc(b?.service || "")} ${b?.phone ? `· <a href="${esc(clientWa(b.phone))}" target="_blank" rel="noopener">${esc(b.phone)}</a>` : ""}</small></span><span class="acts"><button class="btn btn-ghost btn-sm" data-edit="${id}">Editar</button><button class="btn btn-ghost btn-sm" data-cancel="${id}">Cancelar</button></span></li>`;
+      if (s && s.status === "blocked") return `<li><span class="t">${fmt12(t)}</span><span class="who st-blocked">Bloqueado</span><button class="btn btn-ghost btn-sm" data-free="${id}">Liberar</button></li>`;
+      return `<li><span class="t">${fmt12(t)}</span><span class="who st-free">Libre</span><button class="btn btn-ghost btn-sm" data-block="${t}">Bloquear</button></li>`;
+    }).join("");
+  };
+  const sub = () => { adminUnsub && adminUnsub(); bookings = {}; adminUnsub = store.onBookings($("#ad").value, o => { bookings = o; draw(); }); draw(); };
+  $("#ad").addEventListener("change", sub);
+  $("#ag").addEventListener("click", async e => {
+    const c = e.target.closest("[data-cancel]"), f = e.target.closest("[data-free]"), bl = e.target.closest("[data-block]"), ed = e.target.closest("[data-edit]");
+    if (ed) { const b = bookings[ed.dataset.edit]; if (b) editBookingForm(ed.dataset.edit, b); return; }
+    try {
+      if (c) { if (!c.classList.contains("arm")) { c.classList.add("arm"); c.textContent = "¿Seguro? Toca otra vez"; setTimeout(() => { c.classList.remove("arm"); c.textContent = "Cancelar"; }, 3000); return; }
+               await store.cancel(c.dataset.cancel); toast("Turno cancelado."); }
+      if (f) await store.cancel(f.dataset.free);
+      if (bl) await store.block($("#ad").value, bl.dataset.block);
+    } catch { toast("No se pudo guardar el cambio."); }
+  });
+  panelRedraw = draw;
+  sub();
+}
+let panelRedraw = null;
+
+/* Editar o mover una reserva */
+function editBookingForm(oldId, b){
+  const body = $("#pBody"), svc = servicesList(), back = () => panelAgenda(b.date);
+  const svcOpts = svc.map(s => s.n + (s.p ? " – " + s.p : ""));
+  if (b.service && !svcOpts.includes(b.service)) svcOpts.unshift(b.service);
+  body.innerHTML = `
+    <p class="sub" style="margin-top:-6px">Reserva de <b>${esc(b.name)}</b>: ${cap(fmtLong(parseYmd(b.date)))} a las ${fmt12(b.time)}</p>
+    <form id="ef" novalidate>
+      <div class="row2"><div class="field"><label for="en">Nombre</label><input id="en" maxlength="60" value="${esc(b.name)}"></div>
+      <div class="field"><label for="ep">Celular / WhatsApp</label><input id="ep" type="tel" maxlength="20" value="${esc(b.phone)}"></div></div>
+      <div class="field"><label for="es">Servicio</label><select id="es">${svcOpts.map(o => `<option ${o === b.service ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></div>
+      <div class="row2"><div class="field"><label for="edd">Día</label><input type="date" id="edd" value="${b.date}" min="${ymd(now())}"></div>
+      <div class="field"><label for="et">Hora (solo horas libres)</label><select id="et"></select></div></div>
+      <p class="err" id="eerr"></p>
+      <div class="foot"><button type="button" class="btn btn-ghost" id="eback">Volver a la agenda</button><button class="btn btn-red" id="esave">Guardar cambios</button></div>
+    </form>`;
+  const fillTimes = () => {
+    const d = $("#edd").value, sel = $("#et"); if (!d) { sel.innerHTML = ""; return; }
+    const opts = slotsFor(d).filter(t => (d === b.date && t === b.time) || slotState(d, t) === "free");
+    if (d === b.date && !opts.includes(b.time)) opts.push(b.time);
+    opts.sort();
+    sel.innerHTML = opts.length ? opts.map(t => `<option value="${t}" ${d === b.date && t === b.time ? "selected" : ""}>${fmt12(t)}${d === b.date && t === b.time ? " (actual)" : ""}</option>`).join("") : `<option value="">No hay horas libres ese día</option>`;
+  };
+  fillTimes();
+  $("#edd").addEventListener("change", fillTimes);
+  $("#eback").onclick = back;
+  $("#ef").addEventListener("submit", async e => {
+    e.preventDefault();
+    const nb = { name:$("#en").value.trim(), phone:$("#ep").value.replace(/[^\d+]/g,""), service:$("#es").value, date:$("#edd").value, time:$("#et").value };
+    if (nb.name.length < 2) return $("#eerr").textContent = "Escribe el nombre del cliente.";
+    if (nb.phone.replace(/\D/g,"").length < 7) return $("#eerr").textContent = "Escribe un celular válido.";
+    if (!nb.date || !nb.time) return $("#eerr").textContent = "Elige un día y una hora libre.";
+    const moved = nb.date !== b.date || nb.time !== b.time;
+    $("#esave").disabled = true;
+    try {
+      await store.editBooking(oldId, nb);
+      if (!moved) { toast("Reserva actualizada."); back(); return; }
+      const msg = `Hola ${nb.name}, te escribimos de ${S.cfg.name}. Tu turno quedó para el ${fmtLong(parseYmd(nb.date))} a las ${fmt12(nb.time)} ¡Te esperamos!`;
+      body.innerHTML = `
+        <div class="ticket"><div><span>Cliente</span><b>${esc(nb.name)}</b></div><div><span>Nuevo día</span><b>${cap(fmtLong(parseYmd(nb.date)))}</b></div><div><span>Nueva hora</span><b>${fmt12(nb.time)}</b></div></div>
+        <p class="sub">La hora anterior (${fmt12(b.time)} del ${fmtLong(parseYmd(b.date))}) quedó libre.</p>
+        <div class="foot"><button class="btn btn-ghost" id="eback2">Volver a la agenda</button><a class="btn btn-red" href="${esc(clientWa(nb.phone))}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Avisar al cliente por WhatsApp</a></div>`;
+      $("#eback2").onclick = () => panelAgenda(nb.date);
+      toast("Reserva movida.");
+    } catch (er) {
+      $("#esave").disabled = false;
+      $("#eerr").textContent = er.message === "taken" ? "Esa hora se acaba de ocupar. Elige otra." : "No se pudo guardar. Revisa tu conexión.";
+      fillTimes();
+    }
+  });
+}
+
+function panelSettings(){
+  panelRedraw = null;
+  const c = S.cfg, body = $("#pBody");
+  body.innerHTML = `<form id="sf">
+    <div class="row2"><div class="field"><label for="sn">Nombre de la barbería</label><input id="sn" value="${esc(c.name)}" maxlength="50"></div>
+    <div class="field"><label for="sw">WhatsApp (con indicativo, ej. 56932819363)</label><input id="sw" value="${esc(c.whatsapp)}" inputmode="tel"></div></div>
+    <div class="field"><label for="ss">Frase de bienvenida</label><input id="ss" value="${esc(c.slogan)}" maxlength="160"></div>
+    <div class="row2"><div class="field"><label for="sa">Dirección</label><input id="sa" value="${esc(c.address)}"></div>
+    <div class="row2"><div class="field"><label for="si">Instagram</label><input id="si" value="${esc(c.instagram)}" placeholder="@barber2king"></div><div class="field"><label for="st">TikTok</label><input id="st" value="${esc(c.tiktok||"")}" placeholder="@barber2king"></div></div></div>
+    <div class="field"><label for="sd">Duración de cada turno</label><select id="sd" style="max-width:220px">${[15,20,30,40,45,60].map(m => `<option value="${m}" ${+c.slotMin===m?"selected":""}>${m} minutos</option>`).join("")}</select></div>
+    <div class="field"><label>Horario por día (desmarca los días que no abres)</label>
+      <div class="hrs">${[1,2,3,4,5,6,0].map(i => { const h = dayHours(i); return `<div class="hr" data-day="${i}"><label><input type="checkbox" ${h?"checked":""}> ${cap(DAY_NAMES[i])}</label><input type="time" class="ho" value="${h ? h.open : "10:00"}" aria-label="Abre el ${DAY_NAMES[i]}"><span>a</span><input type="time" class="hc" value="${h ? h.close : "22:00"}" aria-label="Cierra el ${DAY_NAMES[i]}"></div>`; }).join("")}</div></div>
+    <div class="field"><label for="sv">Servicios (uno por línea; si quieres mostrar precio: Nombre | Precio)</label><textarea id="sv">${esc(c.services)}</textarea></div>
+    <div class="field"><label>Logo</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span data-logo style="width:64px;height:64px;display:block"></span><input type="file" id="slf" accept="image/*" class="hidden"><button type="button" class="btn btn-brass btn-sm" id="slb">Subir logo</button>${c.logo ? `<button type="button" class="btn btn-ghost btn-sm" id="slr">Quitar logo</button>` : ""}</div></div>
+    <p class="err" id="serr"></p>
+    <div class="foot"><button class="btn btn-red" id="ssave">Guardar cambios</button></div></form>`;
+  let logo = c.logo;
+  const preview = () => { const e = body.querySelector("[data-logo]"); e.innerHTML = `<img src="${esc(logo || "logo.jpg")}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:50%">`; };
+  preview();
+  $("#slb").onclick = () => $("#slf").click();
+  $("#slf").onchange = async e => { const f = e.target.files[0]; if (!f) return; try { logo = await compressImage(f, 360, .9, 200*1024, "image/webp"); preview(); toast("Logo listo. Toca «Guardar cambios»."); } catch (er) { $("#serr").textContent = er.message; } };
+  $("#slr") && ($("#slr").onclick = () => { logo = ""; preview(); });
+  $("#sf").addEventListener("submit", async e => {
+    e.preventDefault();
+    const hours = {}; let bad = "";
+    body.querySelectorAll(".hr").forEach(r => { if (!r.querySelector("input[type=checkbox]").checked) return;
+      const o = r.querySelector(".ho").value, cl = r.querySelector(".hc").value, d = r.dataset.day;
+      if (!o || !cl || toMin(cl) <= toMin(o)) bad = DAY_NAMES[d]; hours[d] = {open:o, close:cl}; });
+    const next = { name:$("#sn").value.trim() || DEFAULTS.name, slogan:$("#ss").value.trim(), whatsapp:$("#sw").value.replace(/\D/g,""), address:$("#sa").value.trim(),
+      instagram:$("#si").value.trim(), tiktok:$("#st").value.trim(), hours, slotMin:+$("#sd").value, services:$("#sv").value.trim(), logo };
+    if (bad) return $("#serr").textContent = `Revisa el ${bad}: la hora de cierre debe ser después de la de apertura.`;
+    if (!Object.keys(hours).length) return $("#serr").textContent = "Marca al menos un día de atención.";
+    if (next.whatsapp.length < 10) return $("#serr").textContent = "Escribe el WhatsApp con indicativo del país, ej. 56932819363.";
+    $("#ssave").disabled = true;
+    try { await store.saveConfig(next); toast("Cambios guardados."); } catch (er) { $("#serr").textContent = "No se pudo guardar: " + (er.message || "error de conexión"); }
+    $("#ssave").disabled = false;
+  });
+}
+
+/* ---------------- Subidas de galería ---------------- */
+$("#photoBtn").onclick = () => $("#photoFile").click();
+$("#videoBtn").onclick = () => $("#videoFile").click();
+$("#photoFile").onchange = async e => {
+  const files = [...e.target.files]; e.target.value = ""; if (!files.length) return;
+  const st = $("#photoStatus"), capt = $("#photoCap").value.trim();
+  for (let i = 0; i < files.length; i++) {
+    st.textContent = `Subiendo ${i+1} de ${files.length}…`;
+    try { const url = await uploadFile(files[i], "photo"); await store.addMedia({kind:"photo", url, caption:capt}); }
+    catch (er) { st.textContent = er.message; return; }
+  }
+  st.textContent = ""; $("#photoCap").value = ""; toast(files.length > 1 ? "Fotos publicadas." : "Foto publicada.");
+};
+$("#videoFile").onchange = async e => {
+  const files = [...e.target.files]; e.target.value = ""; if (!files.length) return;
+  const st = $("#videoStatus"), capt = $("#videoCap").value.trim();
+  for (let i = 0; i < files.length; i++) {
+    st.textContent = `Subiendo video ${i+1} de ${files.length}… (puede tardar un poco)`;
+    try { const url = await uploadFile(files[i], "video"); await store.addMedia({kind:"video", url, caption:capt}); }
+    catch (er) { st.textContent = er.message; return; }
+  }
+  st.textContent = ""; $("#videoCap").value = ""; toast(files.length > 1 ? "Videos publicados." : "Video publicado.");
+};
+// Agrega varios enlaces de redes a la vez (uno por línea)
+async function addLinks(text, kind, st, caption){
+  const lines = String(text).split(/[\s,]+/).filter(Boolean);
+  if (!lines.length) { st.textContent = "Pega al menos un enlace."; return false; }
+  const have = new Set(S.media.map(m => m.embed ? m.embed.net + m.embed.id : m.youtube ? "yt" + m.youtube : ""));
+  let ok = 0, dup = 0; const bad = [];
+  for (const l of lines) {
+    const e = parseSocial(l);
+    if (!e || e.bad) { bad.push(e && e.short ? l + " (enlace corto de TikTok: ábrelo y copia la dirección completa)" : l); continue; }
+    if (have.has(e.net + e.id)) { dup++; continue; }
+    try { await store.addMedia({kind, embed:e, caption}); have.add(e.net + e.id); ok++; }
+    catch (er) { st.textContent = er.message; return false; }
+  }
+  st.textContent = bad.length ? `No reconocí: ${bad.join(" · ")}` : "";
+  if (ok) toast(ok === 1 ? "Publicación agregada." : `${ok} publicaciones agregadas.`);
+  else if (dup && !bad.length) toast("Esas publicaciones ya estaban en la página.");
+  return !bad.length;
+}
+$("#ytBtn").onclick = async () => { if (await addLinks($("#ytUrl").value, "video", $("#videoStatus"), $("#videoCap").value.trim())) { $("#ytUrl").value = ""; $("#videoCap").value = ""; } };
+$("#photoLinkBtn").onclick = async () => { if (await addLinks($("#photoLinks").value, "photo", $("#photoStatus"), $("#photoCap").value.trim())) { $("#photoLinks").value = ""; $("#photoCap").value = ""; } };
+document.addEventListener("click", async e => {
+  const d = e.target.closest("[data-del]");
+  if (d) { e.stopPropagation();
+    if (!d.classList.contains("arm")) { d.classList.add("arm"); d.textContent = "¿Eliminar?"; setTimeout(() => { d.classList.remove("arm"); d.textContent = "Eliminar"; }, 3000); return; }
+    try { await store.delMedia(d.dataset.del); toast("Eliminado."); } catch { toast("No se pudo eliminar."); } return; }
+  const ph = e.target.closest(".ph:not(.social)"); if (ph) openLightbox(+ph.dataset.i);
+});
+function openLightbox(i){
+  const photos = S.media.filter(m => m.kind === "photo" && !m.embed); if (!photos.length) return;
+  lbIndex = (i + photos.length) % photos.length; const p = photos[lbIndex];
+  $("#lb")?.remove();
+  document.body.insertAdjacentHTML("beforeend", `<div class="lightbox" id="lb"><button class="icon-btn x" aria-label="Cerrar">✕</button>${photos.length>1?`<button class="icon-btn pv" aria-label="Anterior">‹</button><button class="icon-btn nx" aria-label="Siguiente">›</button>`:""}<div><img src="${esc(p.url)}" alt="${esc(p.caption||"")}">${p.caption?`<p>${esc(p.caption)}</p>`:""}</div></div>`);
+  const lb = $("#lb");
+  lb.onclick = ev => { if (ev.target.closest(".pv")) openLightbox(lbIndex-1); else if (ev.target.closest(".nx")) openLightbox(lbIndex+1); else if (ev.target === lb || ev.target.closest(".x")) lb.remove(); };
+}
+
+/* ---------------- Eventos de reserva ---------------- */
+$("#days").addEventListener("click", e => { const b = e.target.closest(".day"); if (!b || b.disabled) return; S.sel = b.dataset.d; renderCalendar(); renderSlots(); if (innerWidth < 900) $("#slotsTitle").scrollIntoView({behavior:"smooth", block:"start"}); });
+$("#slots").addEventListener("click", e => { const b = e.target.closest(".slot.free"); if (b) openBooking(b.dataset.t); });
+$("#prevM").onclick = () => { S.month = new Date(S.month.getFullYear(), S.month.getMonth()-1, 1); renderCalendar(); };
+$("#nextM").onclick = () => { S.month = new Date(S.month.getFullYear(), S.month.getMonth()+1, 1); renderCalendar(); };
+$("#adminLink").onclick = openLogin;
+$("#openPanel").onclick = () => openPanel();
+$("#logoutBtn").onclick = async () => { await store.logout(); toast("Sesión cerrada."); };
+
+/* ---------------- Arranque ---------------- */
+let store;
+try { store = FIREBASE_CONFIG.projectId ? await firebaseStore() : demoStore(); }
+catch (e) { console.error(e); store = demoStore(); S.offline = true; $("#liveNote").textContent = "No se pudo conectar con el servidor de reservas. Revisa tu conexión y recarga la página."; $("#liveNote").className = "notice warn"; }
+if (store.mode === "demo" && !S.offline) $("#demoBar").classList.remove("hidden");
+
+const t0 = now(); S.month = new Date(t0.getFullYear(), t0.getMonth(), 1);
+$("#year").textContent = t0.getFullYear();
+renderBrand(); renderClock(); renderCalendar(); renderSlots(); renderMedia();
+
+// Selecciona el primer día con turnos libres
+const firstOpen = () => { for (let i = 0; i <= DAYS_AHEAD; i++) { const d = now(); d.setDate(d.getDate()+i); const ds = ymd(d); if (slotsFor(ds).some(t => slotState(ds,t) === "free")) return ds; } return null; };
+
+store.onConfig(c => {
+  S.cfg = {...DEFAULTS, ...(c || {})};
+  if (c && !c.hours && c.open && Array.isArray(c.days)) { S.cfg.hours = {}; c.days.forEach(d => S.cfg.hours[d] = {open:c.open, close:c.close}); }
+  renderBrand(); renderClock(); renderCalendar(); renderSlots();
+});
+const loadTimer = setTimeout(() => { if (!S.slotsLoaded) { $("#liveNote").textContent = "Aún no podemos mostrar los turnos ocupados. Revisa tu conexión; la página se actualizará sola."; $("#liveNote").className = "notice warn"; } }, 10000);
+store.onSlots(ymd(t0), lastDay(), o => {
+  S.slots = o;
+  if (!S.slotsLoaded) { S.slotsLoaded = true; clearTimeout(loadTimer); if (!S.offline) { $("#liveNote").className = "notice"; $("#liveNote").textContent = "Horarios en vivo."; } if (!S.sel) S.sel = firstOpen(); }
+  renderCalendar(); renderSlots(); panelRedraw && $("#ag") && panelRedraw();
+}, () => { $("#liveNote").textContent = "No se pudieron cargar los turnos. Recarga la página."; $("#liveNote").className = "notice warn"; });
+store.onMedia(list => { S.media = list; renderMedia(); });
+store.onAuth(a => { S.admin = a; document.body.classList.toggle("is-admin", a); $("#adminLink").classList.toggle("hidden", a); renderMedia(); });
+
+let lastMin = -1;
+setInterval(() => { renderClock(); const m = nowMin(); if (m !== lastMin) { if (lastMin !== -1) { renderSlots(); renderCalendar(); } lastMin = m; } }, 1000);
+</script>
+</body>
+</html>
