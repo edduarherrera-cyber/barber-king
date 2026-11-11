@@ -129,6 +129,24 @@ section + section{border-top:1px solid var(--ink-3)}
 .slot.busy{border-color:transparent;background:rgba(224,72,92,.13);color:#e9a6af;cursor:not-allowed}
 .slot.busy b{text-decoration:line-through;text-decoration-thickness:2px}
 .slot.blocked{border-color:transparent;background:rgba(175,192,216,.08);color:var(--dim);cursor:not-allowed}
+.slot.short{border-color:transparent;background:rgba(175,192,216,.06);color:var(--dim);cursor:not-allowed}
+.step1{margin-bottom:24px}
+.step-t{display:flex;align-items:center;gap:10px;margin:0 0 14px;font:700 15px/1.2 var(--body);color:var(--soft)}
+.step-t span{width:26px;height:26px;border-radius:50%;background:var(--brass);color:#120d02;display:grid;place-items:center;font-weight:800;font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{border:1.5px solid var(--ink-3);background:var(--ink);border-radius:var(--r-md);padding:10px 14px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:150px}
+.chip b{font-weight:600}
+.chip small{color:var(--soft);font-size:13px}
+.chip:hover{border-color:var(--soft)}
+.chip[aria-checked=true]{border-color:var(--brass);background:rgba(242,178,51,.12)}
+.chip[aria-checked=true] small{color:var(--brass)}
+.slot-group{margin:0 0 16px}
+.slot-group h4{margin:0 0 8px;font-size:14px;font-weight:600;color:var(--soft)}
+.slots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+@media (max-width:600px){.chips{display:grid;grid-template-columns:1fr 1fr;gap:8px}.chip{min-width:0;padding:9px 11px}.slots-grid{grid-template-columns:repeat(3,1fr);gap:8px}.slots-grid .slot b{font-size:21px}}
+.showall{display:flex;align-items:center;gap:8px;margin:14px 0 0;font-weight:500;cursor:pointer}
+.showall input{width:auto;accent-color:var(--brass)}
+.menu .dur{color:var(--soft);font-weight:500;font-size:14px;margin-left:6px}
 .slot.past{border-color:transparent;background:transparent;color:var(--dim);cursor:not-allowed}
 .empty{padding:28px;border:1.5px dashed var(--ink-3);border-radius:var(--r-md);color:var(--soft);text-align:center}
 .notice{margin-top:14px;font-size:14px;color:var(--soft)}
@@ -161,6 +179,23 @@ section + section{border-top:1px solid var(--ink-3)}
 .vd p{margin:0;padding:10px 12px;background:var(--ink-2);font-size:14px}
 .del{position:absolute;top:8px;right:8px;z-index:2;background:rgba(5,12,25,.8);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer}
 .del.arm{background:var(--busy);border-color:var(--busy)}
+
+/* ---------- Opiniones ---------- */
+.reviews{display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start}
+@media (max-width:900px){.reviews{grid-template-columns:1fr}.rv-form{order:-1}}
+.rv-form h3{margin:0 0 14px;font:800 28px/1 var(--display)}
+.rv-list{display:grid;gap:14px}
+.rv{background:var(--ink-2);border:1px solid var(--ink-3);border-radius:var(--r-md);padding:16px 18px;position:relative}
+.rv-top{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;margin-bottom:6px}
+.rv .who{font-weight:700}
+.rv .meta{color:var(--soft);font-size:14px}
+.rv p{margin:0;white-space:pre-line}
+.stars{color:var(--brass);letter-spacing:2px}
+.stars .off{color:var(--ink-3)}
+.stars-in{display:flex;gap:4px}
+.stars-in button{background:none;border:0;font-size:34px;line-height:1;color:var(--ink-3);cursor:pointer;padding:2px}
+.stars-in button.on{color:var(--brass)}
+.rv-more{justify-self:start}
 
 /* ---------- Contacto ---------- */
 .contact{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:28px}
@@ -227,7 +262,7 @@ textarea{min-height:120px;resize:vertical}
   <div class="wrap">
     <a class="brand" href="#inicio"><span class="logo" data-logo></span><strong data-name></strong></a>
     <nav class="nav" aria-label="Secciones">
-      <a href="#reservar">Reservar</a><a href="#servicios">Servicios</a><a href="#fotos">Fotos</a><a href="#videos">Videos</a><a href="#contacto">Contacto</a>
+      <a href="#reservar">Reservar</a><a href="#servicios">Servicios</a><a href="#fotos">Fotos</a><a href="#videos">Videos</a><a href="#opiniones">Opiniones</a><a href="#contacto">Contacto</a>
     </nav>
     <a class="btn btn-red btn-sm" href="#reservar">Reservar turno</a>
   </div>
@@ -259,10 +294,15 @@ textarea{min-height:120px;resize:vertical}
   <section id="reservar">
     <div class="wrap">
       <div class="head">
-        <div><h2>Reserva tu turno</h2><p>Elige el día y la hora. Los turnos se actualizan en vivo: si alguien reserva, lo verás ocupado al instante.</p></div>
+        <div><h2>Reserva tu turno</h2><p>Elige tu servicio y te mostramos solo las horas en que cabe completo. Todo se actualiza en vivo.</p></div>
+      </div>
+      <div class="card step1">
+        <h3 class="step-t"><span>1</span>Elige tu servicio</h3>
+        <div class="chips" id="svcChips" role="radiogroup" aria-label="Servicio"></div>
       </div>
       <div class="book">
         <div class="card">
+          <h3 class="step-t"><span>2</span>Elige el día</h3>
           <div class="cal-top">
             <button class="icon-btn" id="prevM" aria-label="Mes anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
             <h3 id="monthLabel"></h3>
@@ -273,9 +313,10 @@ textarea{min-height:120px;resize:vertical}
           <div class="legend"><span><i style="background:var(--free)"></i>Con turnos libres</span><span><i style="background:var(--brass)"></i>Quedan pocos</span><span><i style="background:var(--busy)"></i>Lleno</span></div>
         </div>
         <div class="card">
+          <h3 class="step-t"><span>3</span>Elige la hora</h3>
           <div class="slots-head"><h3 id="slotsTitle">Elige un día</h3><span class="count" id="slotsCount"></span></div>
-          <div class="slots" id="slots"></div>
-          <div class="legend"><span><i style="background:var(--free)"></i>Disponible</span><span><i style="background:var(--busy)"></i>Ocupado</span><span><i style="background:var(--dim)"></i>No disponible</span></div>
+          <div id="slots"></div>
+          <label class="showall"><input type="checkbox" id="showAll"> Ver también las horas ocupadas</label>
           <p class="notice" id="liveNote"></p>
         </div>
       </div>
@@ -316,6 +357,25 @@ textarea{min-height:120px;resize:vertical}
         <span class="notice" id="videoStatus" style="margin:0"></span>
       </div>
       <div class="videos" id="videosGrid"></div>
+    </div>
+  </section>
+
+  <section id="opiniones">
+    <div class="wrap">
+      <div class="head"><div><h2>Opiniones de clientes</h2><p id="rvSummary">Cuéntanos cómo te fue con tu servicio.</p></div></div>
+      <div class="reviews">
+        <div class="rv-list" id="rvList"></div>
+        <form class="card rv-form" id="rvForm" novalidate>
+          <h3>Deja tu opinión</h3>
+          <div class="field"><label for="rvName">Tu nombre</label><input id="rvName" maxlength="40" autocomplete="given-name"></div>
+          <div class="field"><label for="rvService">Servicio que te hiciste</label><select id="rvService"></select></div>
+          <div class="field"><label id="rvStarsL">Calificación</label>
+            <div class="stars-in" id="rvStars" role="radiogroup" aria-labelledby="rvStarsL"></div></div>
+          <div class="field"><label for="rvText">Comentario</label><textarea id="rvText" maxlength="500" placeholder="¿Qué te pareció el corte, la atención, el lugar?"></textarea></div>
+          <p class="err" id="rvErr"></p>
+          <button class="btn btn-red" id="rvSend">Publicar opinión</button>
+        </form>
+      </div>
     </div>
   </section>
 
@@ -374,8 +434,8 @@ const DEFAULTS = {
     3: {open:"10:00", close:"22:00"}, 4: {open:"10:00", close:"22:00"},
     5: {open:"09:00", close:"22:00"}, 6: {open:"09:00", close:"22:00"}
   },
-  slotMin: 30,
-  services: "Corte clásico\nFade / degradado\nBarba\nCorte + barba\nCejas\nCorte niño\nMechas platinadas\nPlatinado global\nKeratina para caballero\nOndulación permanente",
+  slotMin: 15,
+  services: "Corte clásico | 30 min\nCorte degradado | 30 min\nCorte para niño | 30 min\nBarba | 15 min\nCorte + barba | 45 min\nMechas platinadas | 1 hora\nPlatinado global | 1 hora\nKeratina para caballero | 1 hora\nOndulación permanente | 1 hora",
   logo: ""
 };
 const DAYS_AHEAD = 45;
@@ -418,15 +478,21 @@ function demoStore(){
     onConfig: cb => on(() => cb(mem.config || null)),
     saveConfig: async c => { mem.config = c; save(); emit(); },
     onSlots: (from, to, cb) => on(() => { const o = {}; for (const [k,v] of Object.entries(coll("slots"))) if (v.date >= from && v.date <= to) o[k] = v; cb(o); }),
-    book: async b => { const id = b.date+"_"+b.time; if (coll("slots")[id]) throw new Error("taken");
-      coll("slots")[id] = {date:b.date, time:b.time, status:"booked"}; coll("bookings")[id] = {...b}; save(); emit(); },
+    book: async b => { const id = b.slotIds[0];
+      if (b.slotIds.some(k => coll("slots")[k])) throw new Error("taken");
+      b.slotIds.forEach(k => coll("slots")[k] = {date:b.date, time:k.split("_")[1], status:"booked", ref:id});
+      coll("bookings")[id] = {...b}; save(); emit(); },
     onBookings: (date, cb) => on(() => { const o = {}; for (const [k,v] of Object.entries(coll("bookings"))) if (v.date === date) o[k] = v; cb(o); }),
-    cancel: async id => { delete coll("slots")[id]; delete coll("bookings")[id]; save(); emit(); },
-    editBooking: async (oldId, b) => { const id = b.date+"_"+b.time;
-      if (id !== oldId) { if (coll("slots")[id]) throw new Error("taken"); delete coll("slots")[oldId]; delete coll("bookings")[oldId];
-        coll("slots")[id] = {date:b.date, time:b.time, status:"booked"}; }
+    cancel: async (id, ids = [id]) => { ids.forEach(k => delete coll("slots")[k]); delete coll("bookings")[id]; save(); emit(); },
+    editBooking: async (oldId, oldIds, b) => { const id = b.slotIds[0];
+      if (b.slotIds.some(k => coll("slots")[k] && !oldIds.includes(k))) throw new Error("taken");
+      oldIds.forEach(k => delete coll("slots")[k]); delete coll("bookings")[oldId];
+      b.slotIds.forEach(k => coll("slots")[k] = {date:b.date, time:k.split("_")[1], status:"booked", ref:id});
       coll("bookings")[id] = {...b}; save(); emit(); },
     block: async (date, time) => { coll("slots")[date+"_"+time] = {date, time, status:"blocked"}; save(); emit(); },
+    onReviews: cb => on(() => cb(Object.entries(coll("reviews")).map(([id,v]) => ({id, ...v})).sort((a,b) => b.createdAt - a.createdAt))),
+    addReview: async r => { coll("reviews")["r"+Date.now()] = {...r, createdAt:Date.now()}; save(); emit(); },
+    delReview: async id => { delete coll("reviews")[id]; save(); emit(); },
     onMedia: cb => on(() => cb(Object.entries(coll("media")).map(([id,v]) => ({id, ...v})).sort((a,b) => b.createdAt - a.createdAt))),
     addMedia: async m => { const id = "m"+Date.now()+Math.random().toString(36).slice(2,6); coll("media")[id] = {...m, createdAt:Date.now()};
       try { save(); } catch (e) { delete coll("media")[id]; throw e; } emit(); },
@@ -455,27 +521,32 @@ async function firebaseStore(){
     onSlots: (from, to, cb, onErr) => F.onSnapshot(
       F.query(F.collection(db,"slots"), F.where("date",">=",from), F.where("date","<=",to)),
       s => { const o = {}; s.forEach(d => o[d.id] = d.data()); cb(o); }, e => { logErr(e); onErr && onErr(e); }),
+    // Una reserva ocupa una o varias horas seguidas según la duración del servicio
     book: async b => {
-      const id = b.date+"_"+b.time, batch = F.writeBatch(db);
-      batch.set(F.doc(db,"slots",id), {date:b.date, time:b.time, status:"booked", createdAt:F.serverTimestamp()});
-      batch.set(F.doc(db,"bookings",id), {date:b.date, time:b.time, name:b.name, phone:b.phone, service:b.service, createdAt:F.serverTimestamp()});
+      const id = b.slotIds[0], batch = F.writeBatch(db);
+      batch.set(F.doc(db,"bookings",id), {date:b.date, time:b.time, name:b.name, phone:b.phone, service:b.service, dur:b.dur, slotIds:b.slotIds, createdAt:F.serverTimestamp()});
+      b.slotIds.forEach(k => batch.set(F.doc(db,"slots",k), {date:b.date, time:k.split("_")[1], status:"booked", ref:id, createdAt:F.serverTimestamp()}));
       try { await batch.commit(); } catch (e) { if (e.code === "permission-denied") throw new Error("taken"); throw e; }
     },
     onBookings: (date, cb) => F.onSnapshot(F.query(F.collection(db,"bookings"), F.where("date","==",date)),
       s => { const o = {}; s.forEach(d => o[d.id] = d.data()); cb(o); }, logErr),
-    cancel: async id => { const b = F.writeBatch(db); b.delete(F.doc(db,"slots",id)); b.delete(F.doc(db,"bookings",id)); await b.commit(); },
-    // Corrige datos o mueve una reserva a otro día/hora (solo el barbero)
-    editBooking: async (oldId, b) => {
-      const id = b.date+"_"+b.time, data = {date:b.date, time:b.time, name:b.name, phone:b.phone, service:b.service};
-      if (id === oldId) return F.updateDoc(F.doc(db,"bookings",id), data);
-      const target = await F.getDoc(F.doc(db,"slots",id)); if (target.exists()) throw new Error("taken");
+    cancel: async (id, ids = [id]) => { const b = F.writeBatch(db); ids.forEach(k => b.delete(F.doc(db,"slots",k))); b.delete(F.doc(db,"bookings",id)); await b.commit(); },
+    // Corrige datos, cambia el servicio o mueve una reserva (solo el barbero)
+    editBooking: async (oldId, oldIds, b) => {
+      const id = b.slotIds[0];
+      for (const k of b.slotIds) if (!oldIds.includes(k)) { const t = await F.getDoc(F.doc(db,"slots",k)); if (t.exists()) throw new Error("taken"); }
       const w = F.writeBatch(db);
-      w.delete(F.doc(db,"slots",oldId)); w.delete(F.doc(db,"bookings",oldId));
-      w.set(F.doc(db,"slots",id), {date:b.date, time:b.time, status:"booked", createdAt:F.serverTimestamp()});
-      w.set(F.doc(db,"bookings",id), {...data, createdAt:F.serverTimestamp()});
+      oldIds.filter(k => !b.slotIds.includes(k)).forEach(k => w.delete(F.doc(db,"slots",k)));
+      if (oldId !== id) w.delete(F.doc(db,"bookings",oldId));
+      b.slotIds.forEach(k => w.set(F.doc(db,"slots",k), {date:b.date, time:k.split("_")[1], status:"booked", ref:id, createdAt:F.serverTimestamp()}));
+      w.set(F.doc(db,"bookings",id), {date:b.date, time:b.time, name:b.name, phone:b.phone, service:b.service, dur:b.dur, slotIds:b.slotIds, createdAt:F.serverTimestamp()});
       await w.commit();
     },
     block: (date, time) => F.setDoc(F.doc(db,"slots",date+"_"+time), {date, time, status:"blocked", createdAt:F.serverTimestamp()}),
+    onReviews: cb => F.onSnapshot(F.query(F.collection(db,"reviews"), F.orderBy("createdAt","desc"), F.limit(200)),
+      s => cb(s.docs.map(d => { const v = d.data(); return {id:d.id, ...v, createdAt: v.createdAt?.toMillis ? v.createdAt.toMillis() : Date.now()}; })), logErr),
+    addReview: r => F.addDoc(F.collection(db,"reviews"), {...r, createdAt:F.serverTimestamp()}),
+    delReview: id => F.deleteDoc(F.doc(db,"reviews",id)),
     onMedia: cb => F.onSnapshot(F.query(F.collection(db,"media"), F.orderBy("createdAt","desc")),
       s => cb(s.docs.map(d => ({id:d.id, ...d.data()}))), logErr),
     addMedia: m => F.addDoc(F.collection(db,"media"), {...m, createdAt:Date.now()}),
@@ -566,10 +637,30 @@ function slotsFor(dateStr){
   return out;
 }
 const nowMin = () => { const n = now(); return n.getHours()*60 + n.getMinutes(); };
-function slotState(dateStr, t){
+const stepMin = () => Math.max(10, Number(S.cfg.slotMin) || 30);
+// Horas que ocupa un servicio de "dur" minutos que empieza a la hora t (null si no alcanza antes del cierre)
+function spanFor(dateStr, t, dur){
+  const times = slotsFor(dateStr), i = times.indexOf(t), n = Math.max(1, Math.ceil((dur || stepMin()) / stepMin()));
+  if (i < 0 || i + n > times.length) return null;
+  return times.slice(i, i + n);
+}
+// ¿Cabe el servicio empezando a la hora t? ignoreRef = reserva que se está moviendo (sus horas cuentan como libres)
+function fits(dateStr, t, dur, ignoreRef){
+  if (dateStr === ymd(now()) && toMin(t) <= nowMin()) return false;
+  const span = spanFor(dateStr, t, dur); if (!span) return false;
+  return span.every(x => { const s = S.slots[dateStr+"_"+x]; return !s || (ignoreRef && (s.ref || dateStr+"_"+x) === ignoreRef); });
+}
+// Horas (ids) que ocupa una reserva ya hecha
+function bookingIds(id){
+  const ids = new Set([id]);
+  for (const [k,v] of Object.entries(S.slots)) if (v.ref === id) ids.add(k);
+  return [...ids];
+}
+function slotState(dateStr, t, dur){
   const s = S.slots[dateStr+"_"+t];
   if (s) return s.status === "blocked" ? "blocked" : "busy";
   if (dateStr === ymd(now()) && toMin(t) <= nowMin()) return "past";
+  if (dur && !fits(dateStr, t, dur)) return "short";
   return "free";
 }
 const lastDay = () => { const d = now(); d.setDate(d.getDate() + DAYS_AHEAD); return ymd(d); };
@@ -594,7 +685,10 @@ function renderBrand(){
   if (ig) { $("#cIg").href = `https://instagram.com/${encodeURIComponent(ig)}`; $("#cIg").textContent = "Instagram @" + ig; }
   if (tt) { $("#cTt").href = `https://www.tiktok.com/@${encodeURIComponent(tt)}`; $("#cTt").textContent = "TikTok @" + tt; }
   const ul = $("#services"); ul.innerHTML = "";
-  servicesList().forEach(s => { ul.insertAdjacentHTML("beforeend", `<li><span class="n">${esc(s.n)}</span>${s.p ? `<span class="lead"></span><span class="p">${esc(s.p)}</span>` : ""}</li>`); });
+  servicesList().forEach(s => { ul.insertAdjacentHTML("beforeend", `<li><span class="n">${esc(s.n)} <small class="dur">${fmtDur(s.dur)}</small></span>${s.p ? `<span class="lead"></span><span class="p">${esc(s.p)}</span>` : ""}</li>`); });
+  const list = servicesList(); if (S.svc != null && S.svc >= list.length) S.svc = null;
+  $("#svcChips").innerHTML = list.map((x, i) => `<button class="chip" role="radio" aria-checked="${i === S.svc}" data-svc="${i}"><b>${esc(x.n)}</b><small>${fmtDur(x.dur)}${x.p ? " · " + esc(x.p) : ""}</small></button>`).join("");
+  const rs = $("#rvService"); if (rs) { const cur = rs.value; rs.innerHTML = `<option value="">Elige el servicio</option>` + list.map(x => `<option ${x.n === cur ? "selected" : ""}>${esc(x.n)}</option>`).join(""); }
 }
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 // "Domingo a jueves: 10:00 a. m. a 10:00 p. m." agrupando días con el mismo horario
@@ -616,7 +710,17 @@ function hoursSummary(){
 const fmtPhone = n => { n = String(n).replace(/\D/g,""); const m = n.match(/^56(9)(\d{4})(\d{4})$/); return m ? `+56 ${m[1]} ${m[2]} ${m[3]}` : "+" + n; };
 // Número del cliente → enlace de WhatsApp (asume Chile si no trae indicativo)
 const clientWa = p => { let d = String(p).replace(/\D/g,""); const intl = String(p).startsWith("+"); if (!intl && d.length === 9 && d[0] === "9") d = "56" + d; else if (!intl && d.length === 8) d = "569" + d; return `https://wa.me/${d}`; };
-const servicesList = () => String(S.cfg.services || "").split("\n").map(l => l.split("|").map(x => x.trim())).filter(a => a[0]).map(([n,p]) => ({n, p:p||""}));
+// Servicios: "Nombre | Precio | 60 min" (precio y duración opcionales, en cualquier orden)
+const parseDur = x => { const m = String(x).match(/^(\d+(?:[.,]\d+)?)\s*(min|mins|minutos|m|h|hr|hora|horas)\.?$/i); if (!m) return 0; const v = parseFloat(m[1].replace(",", ".")); return Math.round(/^h/i.test(m[2]) ? v*60 : v); };
+const servicesList = () => String(S.cfg.services || "").split("\n").map(l => l.split("|").map(x => x.trim())).filter(a => a[0]).map(([n, ...rest]) => {
+  let p = "", dur = 0; rest.forEach(x => { const d = parseDur(x); if (d) dur = d; else if (x) p = x; });
+  return {n, p, dur: dur || Math.max(30, stepMin())};   // sin duración escrita: 30 min
+});
+const svcLabel = s => s.n + (s.p ? " – " + s.p : "");
+const fmtDur = m => m < 60 ? `${m} min` : (m % 60 ? `${Math.floor(m/60)} h ${m%60} min` : `${m/60} h`);
+const curSvc = () => S.svc == null ? null : (servicesList()[S.svc] || null);
+const minDur = () => Math.min(...servicesList().map(s => s.dur), 999) % 999 || stepMin();
+const svcByLabel = lab => servicesList().find(s => svcLabel(s) === lab || s.n === lab);
 const waLink = msg => `https://wa.me/${String(S.cfg.whatsapp).replace(/\D/g,"")}?text=${encodeURIComponent(msg)}`;
 
 function renderClock(){
@@ -640,7 +744,7 @@ function renderCalendar(){
     const all = slotsFor(ds), out = ds < today || ds > max || !all.length;
     let dot = "";
     if (!out) {
-      const free = all.filter(t => slotState(ds,t) === "free").length;
+      const dur = curSvc()?.dur || minDur(), free = all.filter(t => slotState(ds,t,dur) === "free").length;
       const cls = free === 0 ? "full" : free <= Math.max(2, all.length*.25) ? "few" : "free";
       dot = `<span class="dot ${cls}"></span>`;
     }
@@ -654,16 +758,22 @@ function renderCalendar(){
 }
 
 function renderSlots(){
-  const box = $("#slots");
-  if (!S.sel) { $("#slotsTitle").textContent = "Elige un día"; $("#slotsCount").textContent = ""; box.innerHTML = `<div class="empty" style="grid-column:1/-1">Toca un día del calendario para ver sus horarios.</div>`; return; }
+  const box = $("#slots"), sv = curSvc(), showAll = $("#showAll").checked;
+  const empty = msg => { box.innerHTML = `<div class="empty">${msg}</div>`; };
+  if (!S.sel) { $("#slotsTitle").textContent = "Elige un día"; $("#slotsCount").textContent = ""; return empty("Toca un día del calendario para ver sus horarios."); }
   const all = slotsFor(S.sel);
   $("#slotsTitle").textContent = cap(fmtLong(parseYmd(S.sel)));
-  if (!all.length) { $("#slotsCount").textContent = ""; box.innerHTML = `<div class="empty" style="grid-column:1/-1">Ese día no abrimos. Elige otro día.</div>`; return; }
-  const st = all.map(t => [t, slotState(S.sel, t)]);
+  if (!all.length) { $("#slotsCount").textContent = ""; return empty("Ese día no abrimos. Elige otro día."); }
+  if (!sv) { $("#slotsCount").textContent = ""; return empty("Primero elige tu servicio (paso 1) y aquí aparecerán las horas en que cabe completo."); }
+  const st = all.map(t => [t, slotState(S.sel, t, sv.dur)]);
   const free = st.filter(x => x[1] === "free").length;
-  $("#slotsCount").textContent = free ? `${free} ${free === 1 ? "turno libre" : "turnos libres"}` : "Sin turnos libres";
-  const lab = {free:"Disponible", busy:"Ocupado", blocked:"No disponible", past:"Ya pasó"};
-  box.innerHTML = st.map(([t,s]) => `<button class="slot ${s}" data-t="${t}" ${s!=="free"?"disabled":""} aria-label="${fmt12(t)}, ${lab[s]}"><b>${fmt12(t).replace(/ [ap]\. m\./,"")}</b><small>${fmt12(t).slice(-5)} · ${lab[s]}</small></button>`).join("");
+  $("#slotsCount").textContent = free ? `${free} ${free === 1 ? "hora disponible" : "horas disponibles"} para ${sv.n.toLowerCase()} (${fmtDur(sv.dur)})` : "";
+  const shown = showAll ? st : st.filter(x => x[1] === "free");
+  if (!shown.length) return empty(`No quedan horas para ${esc(sv.n.toLowerCase())} este día. Prueba con otro día.`);
+  const lab = {free:"Disponible", busy:"Ocupado", blocked:"No disponible", past:"Ya pasó", short:"Sin tiempo"};
+  const btn = ([t,s]) => `<button class="slot ${s}" data-t="${t}" ${s!=="free"?"disabled":""} aria-label="${fmt12(t)}, ${lab[s]}"><b>${fmt12(t).replace(/ [ap]\. m\./,"")}</b><small>${fmt12(t).slice(-5)}${showAll ? " · " + lab[s] : ""}</small></button>`;
+  const groups = [["Mañana", x => toMin(x[0]) < 720], ["Tarde", x => toMin(x[0]) >= 720 && toMin(x[0]) < 1080], ["Noche", x => toMin(x[0]) >= 1080]];
+  box.innerHTML = groups.map(([name, f]) => { const g = shown.filter(f); return g.length ? `<div class="slot-group"><h4>${name}</h4><div class="slots-grid">${g.map(btn).join("")}</div></div>` : ""; }).join("");
 }
 
 let lbIndex = 0;
@@ -694,32 +804,40 @@ addEventListener("keydown", e => { if (e.key === "Escape") { if ($("#lb")) $("#l
 function toast(msg){ const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.append(t); setTimeout(() => t.remove(), 3200); }
 
 function openBooking(t){
-  const date = S.sel, svc = servicesList();
+  const date = S.sel, sv = curSvc();
+  if (!sv) return;
   if (S.offline) {   // sin conexión con el sistema de reservas: reservar por WhatsApp
-    const msg = `Hola, quiero reservar en ${S.cfg.name} el ${fmtLong(parseYmd(date))} a las ${fmt12(t)}.`;
+    const msg = `Hola, quiero reservar ${sv.n} en ${S.cfg.name} el ${fmtLong(parseYmd(date))} a las ${fmt12(t)}.`;
     openModal(`<h3>Reserva por WhatsApp</h3><p class="sub">En este momento no pudimos conectar con el sistema de reservas. Escríbenos y te confirmamos la hora.</p>
       <div class="foot"><button class="btn btn-ghost" data-close>Volver</button><a class="btn btn-red" href="${waLink(msg)}" target="_blank" rel="noopener">Reservar por WhatsApp</a></div>`);
     return;
   }
+  if (spanFor(date, t, sv.dur).length > 16) {   // servicios muy largos: se coordinan por WhatsApp
+    const msg = `Hola, quiero reservar ${sv.n} en ${S.cfg.name} el ${fmtLong(parseYmd(date))} a las ${fmt12(t)}.`;
+    openModal(`<h3>Reserva por WhatsApp</h3><p class="sub">${esc(sv.n)} dura ${fmtDur(sv.dur)}. Para este servicio coordinamos la hora contigo por WhatsApp.</p>
+      <div class="foot"><button class="btn btn-ghost" data-close>Volver</button><a class="btn btn-red" href="${waLink(msg)}" target="_blank" rel="noopener">Escribir por WhatsApp</a></div>`);
+    return;
+  }
   const ov = openModal(`
     <h3>Confirma tu turno</h3>
-    <p class="sub">${cap(fmtLong(parseYmd(date)))} a las ${fmt12(t)}</p>
+    <p class="sub">${cap(fmtLong(parseYmd(date)))} de ${fmt12(t)} a ${fmt12(fromMin(toMin(t) + spanFor(date, t, sv.dur).length * stepMin()))}</p>
     <form id="bf" novalidate>
       <div class="field"><label for="bn">Tu nombre</label><input id="bn" autocomplete="name" maxlength="60" required></div>
       <div class="field"><label for="bp">Celular / WhatsApp</label><input id="bp" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="9 1234 5678" required></div>
-      <div class="field"><label for="bs">Servicio</label><select id="bs">${svc.map(s => `<option>${esc(s.n)}${s.p ? " – " + esc(s.p) : ""}</option>`).join("")}</select></div>
+      <div class="field"><label>Servicio</label><div class="ticket" style="margin:0;padding:10px 14px"><div><b>${esc(svcLabel(sv))}</b><span>${fmtDur(sv.dur)}</span></div></div></div>
       <p class="err" id="be"></p>
       <div class="foot"><button type="button" class="btn btn-ghost" data-close>Volver</button><button class="btn btn-red" id="bgo">Reservar turno</button></div>
     </form>`);
   ov.querySelector("#bf").addEventListener("submit", async e => {
     e.preventDefault();
-    const name = $("#bn").value.trim(), phone = $("#bp").value.replace(/[^\d+]/g,""), service = $("#bs").value;
+    const name = $("#bn").value.trim(), phone = $("#bp").value.replace(/[^\d+]/g,""), service = svcLabel(sv);
     if (name.length < 2) return $("#be").textContent = "Escribe tu nombre.";
     if (phone.replace(/\D/g,"").length < 7) return $("#be").textContent = "Escribe un número de celular válido.";
-    if (slotState(date, t) !== "free") return $("#be").textContent = "Ese turno acaba de ser tomado. Cierra y elige otra hora.";
+    if (!fits(date, t, sv.dur)) return $("#be").textContent = "Esa hora se acaba de ocupar. Cierra y elige otra.";
     const b = $("#bgo"); b.disabled = true; b.textContent = "Reservando…"; $("#be").textContent = "";
     try {
-      await store.book({date, time:t, name, phone, service});
+      const slotIds = spanFor(date, t, sv.dur).map(x => date+"_"+x);
+      await store.book({date, time:t, name, phone, service, dur:sv.dur, slotIds});
       const msg = `Hola, soy ${name}. Reservé un turno en ${S.cfg.name} para el ${fmtLong(parseYmd(date))} a las ${fmt12(t)} (${service}).`;
       ov.querySelector(".modal").innerHTML = `
         <h3>Turno reservado</h3>
@@ -777,7 +895,9 @@ function panelAgenda(day){
     if (!list.length) { $("#ag").innerHTML = `<li style="display:block" class="notice">Ese día está cerrado según tu horario.</li>`; return; }
     $("#ag").innerHTML = list.map(t => {
       const id = d+"_"+t, s = S.slots[id], b = bookings[id];
-      if (s && s.status === "booked") return `<li><span class="t">${fmt12(t)}</span><span class="who"><b>${esc(b?.name || "Reservado")}</b><small>${esc(b?.service || "")} ${b?.phone ? `· <a href="${esc(clientWa(b.phone))}" target="_blank" rel="noopener">${esc(b.phone)}</a>` : ""}</small></span><span class="acts"><button class="btn btn-ghost btn-sm" data-edit="${id}">Editar</button><button class="btn btn-ghost btn-sm" data-cancel="${id}">Cancelar</button></span></li>`;
+      if (s && s.status === "booked" && s.ref && s.ref !== id) { const m = bookings[s.ref];
+        return `<li><span class="t">${fmt12(t)}</span><span class="who st-blocked">↳ Continúa: ${esc(m?.name || "reserva anterior")}${m?.service ? " (" + esc(m.service) + ")" : ""}</span><span></span></li>`; }
+      if (s && s.status === "booked") return `<li><span class="t">${fmt12(t)}</span><span class="who"><b>${esc(b?.name || "Reservado")}</b><small>${esc(b?.service || "")}${b?.dur ? " · " + fmtDur(b.dur) : ""} ${b?.phone ? `· <a href="${esc(clientWa(b.phone))}" target="_blank" rel="noopener">${esc(b.phone)}</a>` : ""}</small></span><span class="acts"><button class="btn btn-ghost btn-sm" data-edit="${id}">Editar</button><button class="btn btn-ghost btn-sm" data-cancel="${id}">Cancelar</button></span></li>`;
       if (s && s.status === "blocked") return `<li><span class="t">${fmt12(t)}</span><span class="who st-blocked">Bloqueado</span><button class="btn btn-ghost btn-sm" data-free="${id}">Liberar</button></li>`;
       return `<li><span class="t">${fmt12(t)}</span><span class="who st-free">Libre</span><button class="btn btn-ghost btn-sm" data-block="${t}">Bloquear</button></li>`;
     }).join("");
@@ -789,8 +909,8 @@ function panelAgenda(day){
     if (ed) { const b = bookings[ed.dataset.edit]; if (b) editBookingForm(ed.dataset.edit, b); return; }
     try {
       if (c) { if (!c.classList.contains("arm")) { c.classList.add("arm"); c.textContent = "¿Seguro? Toca otra vez"; setTimeout(() => { c.classList.remove("arm"); c.textContent = "Cancelar"; }, 3000); return; }
-               await store.cancel(c.dataset.cancel); toast("Turno cancelado."); }
-      if (f) await store.cancel(f.dataset.free);
+               await store.cancel(c.dataset.cancel, bookingIds(c.dataset.cancel)); toast("Turno cancelado."); }
+      if (f) await store.cancel(f.dataset.free, [f.dataset.free]);
       if (bl) await store.block($("#ad").value, bl.dataset.block);
     } catch { toast("No se pudo guardar el cambio."); }
   });
@@ -801,15 +921,16 @@ let panelRedraw = null;
 
 /* Editar o mover una reserva */
 function editBookingForm(oldId, b){
-  const body = $("#pBody"), svc = servicesList(), back = () => panelAgenda(b.date);
-  const svcOpts = svc.map(s => s.n + (s.p ? " – " + s.p : ""));
-  if (b.service && !svcOpts.includes(b.service)) svcOpts.unshift(b.service);
+  const body = $("#pBody"), svc = servicesList(), back = () => panelAgenda(b.date), oldIds = bookingIds(oldId);
+  const svcOpts = svc.map(s => ({lab: svcLabel(s), dur: s.dur}));
+  if (b.service && !svcOpts.some(o => o.lab === b.service)) svcOpts.unshift({lab: b.service, dur: b.dur || oldIds.length * stepMin()});
+  const durOf = lab => (svcOpts.find(o => o.lab === lab) || {}).dur || stepMin();
   body.innerHTML = `
     <p class="sub" style="margin-top:-6px">Reserva de <b>${esc(b.name)}</b>: ${cap(fmtLong(parseYmd(b.date)))} a las ${fmt12(b.time)}</p>
     <form id="ef" novalidate>
       <div class="row2"><div class="field"><label for="en">Nombre</label><input id="en" maxlength="60" value="${esc(b.name)}"></div>
       <div class="field"><label for="ep">Celular / WhatsApp</label><input id="ep" type="tel" maxlength="20" value="${esc(b.phone)}"></div></div>
-      <div class="field"><label for="es">Servicio</label><select id="es">${svcOpts.map(o => `<option ${o === b.service ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></div>
+      <div class="field"><label for="es">Servicio</label><select id="es">${svcOpts.map(o => `<option value="${esc(o.lab)}" ${o.lab === b.service ? "selected" : ""}>${esc(o.lab)} (${fmtDur(o.dur)})</option>`).join("")}</select></div>
       <div class="row2"><div class="field"><label for="edd">Día</label><input type="date" id="edd" value="${b.date}" min="${ymd(now())}"></div>
       <div class="field"><label for="et">Hora (solo horas libres)</label><select id="et"></select></div></div>
       <p class="err" id="eerr"></p>
@@ -817,24 +938,28 @@ function editBookingForm(oldId, b){
     </form>`;
   const fillTimes = () => {
     const d = $("#edd").value, sel = $("#et"); if (!d) { sel.innerHTML = ""; return; }
-    const opts = slotsFor(d).filter(t => (d === b.date && t === b.time) || slotState(d, t) === "free");
-    if (d === b.date && !opts.includes(b.time)) opts.push(b.time);
-    opts.sort();
+    const dur = durOf($("#es").value);
+    const opts = slotsFor(d).filter(t => fits(d, t, dur, oldId) || (d === b.date && t === b.time && spanFor(d, t, dur) && spanFor(d, t, dur).every(x => { const s = S.slots[d+"_"+x]; return !s || (s.ref || d+"_"+x) === oldId; })));
     sel.innerHTML = opts.length ? opts.map(t => `<option value="${t}" ${d === b.date && t === b.time ? "selected" : ""}>${fmt12(t)}${d === b.date && t === b.time ? " (actual)" : ""}</option>`).join("") : `<option value="">No hay horas libres ese día</option>`;
   };
   fillTimes();
   $("#edd").addEventListener("change", fillTimes);
+  $("#es").addEventListener("change", fillTimes);
   $("#eback").onclick = back;
   $("#ef").addEventListener("submit", async e => {
     e.preventDefault();
     const nb = { name:$("#en").value.trim(), phone:$("#ep").value.replace(/[^\d+]/g,""), service:$("#es").value, date:$("#edd").value, time:$("#et").value };
+    nb.dur = durOf(nb.service);
     if (nb.name.length < 2) return $("#eerr").textContent = "Escribe el nombre del cliente.";
     if (nb.phone.replace(/\D/g,"").length < 7) return $("#eerr").textContent = "Escribe un celular válido.";
     if (!nb.date || !nb.time) return $("#eerr").textContent = "Elige un día y una hora libre.";
+    const span = nb.time && spanFor(nb.date, nb.time, nb.dur);
+    if (!span) return $("#eerr").textContent = "Ese servicio no alcanza a terminar antes del cierre. Elige otra hora.";
+    nb.slotIds = span.map(x => nb.date+"_"+x);
     const moved = nb.date !== b.date || nb.time !== b.time;
     $("#esave").disabled = true;
     try {
-      await store.editBooking(oldId, nb);
+      await store.editBooking(oldId, oldIds, nb);
       if (!moved) { toast("Reserva actualizada."); back(); return; }
       const msg = `Hola ${nb.name}, te escribimos de ${S.cfg.name}. Tu turno quedó para el ${fmtLong(parseYmd(nb.date))} a las ${fmt12(nb.time)} ¡Te esperamos!`;
       body.innerHTML = `
@@ -860,10 +985,10 @@ function panelSettings(){
     <div class="field"><label for="ss">Frase de bienvenida</label><input id="ss" value="${esc(c.slogan)}" maxlength="160"></div>
     <div class="row2"><div class="field"><label for="sa">Dirección</label><input id="sa" value="${esc(c.address)}"></div>
     <div class="row2"><div class="field"><label for="si">Instagram</label><input id="si" value="${esc(c.instagram)}" placeholder="@barber2king"></div><div class="field"><label for="st">TikTok</label><input id="st" value="${esc(c.tiktok||"")}" placeholder="@barber2king"></div></div></div>
-    <div class="field"><label for="sd">Duración de cada turno</label><select id="sd" style="max-width:220px">${[15,20,30,40,45,60].map(m => `<option value="${m}" ${+c.slotMin===m?"selected":""}>${m} minutos</option>`).join("")}</select></div>
+    <div class="field"><label for="sd">Cada cuánto se puede empezar una reserva</label><select id="sd" style="max-width:220px">${[15,20,30,60].map(m => `<option value="${m}" ${+c.slotMin===m?"selected":""}>Cada ${m} minutos</option>`).join("")}</select><p class="notice" style="margin:6px 0 0">Con 15 minutos, un servicio de 45 min deja libre la hora justo cuando termina.</p></div>
     <div class="field"><label>Horario por día (desmarca los días que no abres)</label>
       <div class="hrs">${[1,2,3,4,5,6,0].map(i => { const h = dayHours(i); return `<div class="hr" data-day="${i}"><label><input type="checkbox" ${h?"checked":""}> ${cap(DAY_NAMES[i])}</label><input type="time" class="ho" value="${h ? h.open : "10:00"}" aria-label="Abre el ${DAY_NAMES[i]}"><span>a</span><input type="time" class="hc" value="${h ? h.close : "22:00"}" aria-label="Cierra el ${DAY_NAMES[i]}"></div>`; }).join("")}</div></div>
-    <div class="field"><label for="sv">Servicios (uno por línea; si quieres mostrar precio: Nombre | Precio)</label><textarea id="sv">${esc(c.services)}</textarea></div>
+    <div class="field"><label for="sv">Servicios, uno por línea: Nombre | Precio | Duración. Ej.: Corte + barba | $16.000 | 60 min. El precio es opcional; si no pones duración, dura lo mismo que un turno.</label><textarea id="sv">${esc(c.services)}</textarea></div>
     <div class="field"><label>Logo</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span data-logo style="width:64px;height:64px;display:block"></span><input type="file" id="slf" accept="image/*" class="hidden"><button type="button" class="btn btn-brass btn-sm" id="slb">Subir logo</button>${c.logo ? `<button type="button" class="btn btn-ghost btn-sm" id="slr">Quitar logo</button>` : ""}</div></div>
     <p class="err" id="serr"></p>
     <div class="foot"><button class="btn btn-red" id="ssave">Guardar cambios</button></div></form>`;
@@ -949,9 +1074,51 @@ function openLightbox(i){
   lb.onclick = ev => { if (ev.target.closest(".pv")) openLightbox(lbIndex-1); else if (ev.target.closest(".nx")) openLightbox(lbIndex+1); else if (ev.target === lb || ev.target.closest(".x")) lb.remove(); };
 }
 
+/* ---------------- Opiniones ---------------- */
+S.reviews = []; S.rvShow = 6; let rvStars = 0;
+const starsHtml = n => `<span class="stars" aria-label="${n} de 5 estrellas">${"★".repeat(n)}<span class="off">${"★".repeat(5-n)}</span></span>`;
+function renderReviews(){
+  const list = S.reviews, n = list.length;
+  if (!n) { $("#rvSummary").textContent = "Aún no hay opiniones. Sé el primero en contarnos cómo te fue."; $("#rvList").innerHTML = `<div class="empty">Cuando los clientes dejen su opinión, aparecerá aquí.</div>`; return; }
+  const avg = list.reduce((a, r) => a + (r.rating || 0), 0) / n;
+  $("#rvSummary").innerHTML = `${starsHtml(Math.round(avg))} <b>${avg.toFixed(1).replace(".", ",")}</b> de 5 · ${n} ${n === 1 ? "opinión" : "opiniones"}`;
+  $("#rvList").innerHTML = list.slice(0, S.rvShow).map(r => `<article class="rv">
+      <button class="del admin-only" data-delrv="${esc(r.id)}">Eliminar</button>
+      <div class="rv-top"><span class="who">${esc(r.name)}</span>${starsHtml(r.rating || 0)}<span class="meta">${esc(r.service)} · ${new Date(r.createdAt).toLocaleDateString("es-CL",{day:"numeric",month:"short",year:"numeric"})}</span></div>
+      <p>${esc(r.text)}</p></article>`).join("") + (n > S.rvShow ? `<button class="btn btn-ghost btn-sm rv-more" id="rvMore">Ver más opiniones</button>` : "");
+}
+function drawStarInput(){ $("#rvStars").innerHTML = [1,2,3,4,5].map(i => `<button type="button" role="radio" aria-checked="${i === rvStars}" aria-label="${i} de 5" data-star="${i}" class="${i <= rvStars ? "on" : ""}">★</button>`).join(""); }
+drawStarInput();
+$("#rvStars").addEventListener("click", e => { const b = e.target.closest("[data-star]"); if (!b) return; rvStars = +b.dataset.star; drawStarInput(); $("#rvStars").querySelector(`[data-star="${rvStars}"]`).focus(); });
+$("#rvList").addEventListener("click", async e => {
+  if (e.target.closest("#rvMore")) { S.rvShow += 10; renderReviews(); return; }
+  const d = e.target.closest("[data-delrv]"); if (!d) return;
+  if (!d.classList.contains("arm")) { d.classList.add("arm"); d.textContent = "¿Eliminar?"; setTimeout(() => { d.classList.remove("arm"); d.textContent = "Eliminar"; }, 3000); return; }
+  try { await store.delReview(d.dataset.delrv); toast("Opinión eliminada."); } catch { toast("No se pudo eliminar."); }
+});
+$("#rvForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const r = { name:$("#rvName").value.trim(), service:$("#rvService").value, rating:rvStars, text:$("#rvText").value.trim() };
+  const err = $("#rvErr");
+  if (r.name.length < 2) return err.textContent = "Escribe tu nombre.";
+  if (!r.service) return err.textContent = "Elige el servicio que te hiciste.";
+  if (!r.rating) return err.textContent = "Toca las estrellas para calificar.";
+  if (r.text.length < 3) return err.textContent = "Escribe tu comentario.";
+  if (S.offline) return err.textContent = "No pudimos conectar. Inténtalo de nuevo en un momento.";
+  err.textContent = ""; $("#rvSend").disabled = true;
+  try { await store.addReview(r); $("#rvForm").reset(); $("#rvService").value = ""; rvStars = 0; drawStarInput(); toast("¡Gracias! Tu opinión ya está publicada."); }
+  catch { err.textContent = "No se pudo publicar. Revisa tu conexión e inténtalo de nuevo."; }
+  $("#rvSend").disabled = false;
+});
+
 /* ---------------- Eventos de reserva ---------------- */
 $("#days").addEventListener("click", e => { const b = e.target.closest(".day"); if (!b || b.disabled) return; S.sel = b.dataset.d; renderCalendar(); renderSlots(); if (innerWidth < 900) $("#slotsTitle").scrollIntoView({behavior:"smooth", block:"start"}); });
 $("#slots").addEventListener("click", e => { const b = e.target.closest(".slot.free"); if (b) openBooking(b.dataset.t); });
+$("#svcChips").addEventListener("click", e => { const c = e.target.closest("[data-svc]"); if (!c) return;
+  S.svc = +c.dataset.svc; document.querySelectorAll("#svcChips .chip").forEach(x => x.setAttribute("aria-checked", x === c));
+  if (!S.sel || !slotsFor(S.sel).some(t => slotState(S.sel, t, curSvc().dur) === "free")) S.sel = firstOpen() || S.sel;
+  renderCalendar(); renderSlots(); });
+$("#showAll").addEventListener("change", renderSlots);
 $("#prevM").onclick = () => { S.month = new Date(S.month.getFullYear(), S.month.getMonth()-1, 1); renderCalendar(); };
 $("#nextM").onclick = () => { S.month = new Date(S.month.getFullYear(), S.month.getMonth()+1, 1); renderCalendar(); };
 $("#adminLink").onclick = openLogin;
@@ -969,7 +1136,7 @@ $("#year").textContent = t0.getFullYear();
 renderBrand(); renderClock(); renderCalendar(); renderSlots(); renderMedia();
 
 // Selecciona el primer día con turnos libres
-const firstOpen = () => { for (let i = 0; i <= DAYS_AHEAD; i++) { const d = now(); d.setDate(d.getDate()+i); const ds = ymd(d); if (slotsFor(ds).some(t => slotState(ds,t) === "free")) return ds; } return null; };
+const firstOpen = () => { for (let i = 0; i <= DAYS_AHEAD; i++) { const d = now(); d.setDate(d.getDate()+i); const ds = ymd(d); if (slotsFor(ds).some(t => slotState(ds,t,curSvc()?.dur || minDur()) === "free")) return ds; } return null; };
 
 store.onConfig(c => {
   S.cfg = {...DEFAULTS, ...(c || {})};
@@ -983,7 +1150,8 @@ store.onSlots(ymd(t0), lastDay(), o => {
   renderCalendar(); renderSlots(); panelRedraw && $("#ag") && panelRedraw();
 }, () => { $("#liveNote").textContent = "No se pudieron cargar los turnos. Recarga la página."; $("#liveNote").className = "notice warn"; });
 store.onMedia(list => { S.media = list; renderMedia(); });
-store.onAuth(a => { S.admin = a; document.body.classList.toggle("is-admin", a); $("#adminLink").classList.toggle("hidden", a); renderMedia(); });
+store.onReviews(list => { S.reviews = list; renderReviews(); });
+store.onAuth(a => { S.admin = a; document.body.classList.toggle("is-admin", a); $("#adminLink").classList.toggle("hidden", a); renderMedia(); renderReviews(); });
 
 let lastMin = -1;
 setInterval(() => { renderClock(); const m = nowMin(); if (m !== lastMin) { if (lastMin !== -1) { renderSlots(); renderCalendar(); } lastMin = m; } }, 1000);
