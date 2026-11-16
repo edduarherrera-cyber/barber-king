@@ -3,8 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Barber King · Reserva tu hora</title>
-<meta name="description" content="Reserva tu turno en línea: mira los horarios libres en tiempo real y agenda en segundos.">
+<title>Barber King · Barbería en Av. Ecuador 4678 · Reserva tu hora en línea</title>
+<meta name="description" content="Barber King, barbería en Av. Ecuador 4678. Cortes clásicos, degradados, barba, platinados y más. Reserva tu hora en línea y mira las horas libres en tiempo real.">
+<link rel="canonical" href="https://edduarherrera-cyber.github.io/barber-king/">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="logo.jpg" type="image/jpeg">
+<link rel="apple-touch-icon" href="logo.jpg">
+<!-- Vista previa al compartir el link (WhatsApp, Facebook, etc.) -->
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_CL">
+<meta property="og:site_name" content="Barber King">
+<meta property="og:title" content="Barber King · Reserva tu hora en línea">
+<meta property="og:description" content="Cortes, degradados, barba y platinados. Mira las horas libres y reserva en un minuto.">
+<meta property="og:url" content="https://edduarherrera-cyber.github.io/barber-king/">
+<meta property="og:image" content="https://edduarherrera-cyber.github.io/barber-king/banner.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<!-- Datos del negocio para Google -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BarberShop",
+  "name": "Barber King",
+  "url": "https://edduarherrera-cyber.github.io/barber-king/",
+  "image": "https://edduarherrera-cyber.github.io/barber-king/banner.jpg",
+  "logo": "https://edduarherrera-cyber.github.io/barber-king/logo.jpg",
+  "telephone": "+56932819363",
+  "address": { "@type": "PostalAddress", "streetAddress": "Av. Ecuador 4678", "addressCountry": "CL" },
+  "openingHoursSpecification": [
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Sunday","Monday","Tuesday","Wednesday","Thursday"], "opens": "10:00", "closes": "22:00" },
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Friday","Saturday"], "opens": "09:00", "closes": "22:00" }
+  ],
+  "sameAs": ["https://instagram.com/barber2king", "https://www.tiktok.com/@barber2king"]
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -668,7 +700,7 @@ const lastDay = () => { const d = now(); d.setDate(d.getDate() + DAYS_AHEAD); re
 /* ---------------- Render ---------------- */
 function renderBrand(){
   const c = S.cfg;
-  document.title = `${c.name} · Reserva tu turno`;
+  document.title = c.address ? `${c.name} · Barbería en ${c.address} · Reserva tu hora en línea` : `${c.name} · Reserva tu hora en línea`;
   document.querySelectorAll("[data-name]").forEach(e => e.textContent = c.name);
   document.querySelectorAll("[data-slogan]").forEach(e => e.textContent = c.slogan);
   document.querySelectorAll("[data-logo]").forEach(e => {
