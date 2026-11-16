@@ -66,6 +66,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .wrap{width:min(1160px,100% - 40px);margin-inline:auto}
 .hidden{display:none!important}
 body:not(.is-admin) .admin-only{display:none!important}
+body:not(.is-staff) .staff-only{display:none!important}
 
 /* ---------- Header ---------- */
 .top{position:sticky;top:0;z-index:30;background:rgba(0,0,0,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--ink-3)}
@@ -266,6 +267,32 @@ textarea{min-height:120px;resize:vertical}
 .agenda .t{white-space:nowrap;font:800 22px/1 var(--display);font-variant-numeric:tabular-nums}
 .agenda .who small{display:block;color:var(--soft)}
 .agenda .st-free{color:var(--free)}
+.ag-h{margin:18px 0 4px;font:800 22px/1.1 var(--display);color:var(--brass)}
+.ag-h:first-child{margin-top:4px}
+.panel-box{border:1.5px dashed var(--ink-3);border-radius:var(--r-md);padding:14px;margin-top:18px}
+.panel-box h4{margin:0 0 10px;font-size:16px}
+.inc-bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:0 0 16px}
+.inc-bar input{width:auto}
+.seg{display:inline-flex;border:1.5px solid var(--ink-3);border-radius:999px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:999px;padding:6px 14px;cursor:pointer;font-weight:600;color:var(--soft)}
+.seg button[aria-selected=true]{background:var(--enamel);color:var(--ink)}
+.tiles{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:10px;margin:0 0 6px}
+@media (max-width:700px){.tiles{grid-template-columns:1fr 1fr}.tile.big{grid-column:1/-1}}
+.tile{border:1px solid var(--ink-3);border-radius:var(--r-md);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.tile span{font-size:13px;color:var(--soft);font-weight:600}
+.tile b{font:800 28px/1.1 var(--display);font-variant-numeric:tabular-nums}
+.tile.big b{font-size:38px;color:var(--brass)}
+.tile small{font-size:12.5px;color:var(--soft)}
+.itab{width:100%;border-collapse:collapse;font-size:14.5px}
+.itab th{text-align:left;font-size:12.5px;color:var(--soft);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--ink-3)}
+.itab td{padding:8px;border-bottom:1px solid var(--ink-3)}
+.itab .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.itab.pick tbody tr{cursor:pointer}
+.itab.pick tbody tr:hover td{background:rgba(242,178,51,.06)}
+.ibar{display:block;height:8px;background:rgba(242,178,51,.12);border-radius:4px;min-width:60px}
+.ibar i{display:block;height:100%;background:var(--brass);border-radius:4px}
+.tag-ns{display:inline-block;font-size:11.5px;font-weight:700;color:var(--busy);border:1px solid var(--busy);border-radius:999px;padding:0 7px;margin-left:6px;vertical-align:middle}
+.okbox{background:rgba(63,182,122,.1);border:1px solid rgba(63,182,122,.4);border-radius:var(--r-sm);padding:10px 12px;margin:10px 0;font-size:14px}
 .agenda .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .agenda .st-blocked{color:var(--dim)}
 .hrs{display:grid;gap:8px}
@@ -331,6 +358,10 @@ textarea{min-height:120px;resize:vertical}
       <div class="card step1">
         <h3 class="step-t"><span>1</span>Elige tu servicio</h3>
         <div class="chips" id="svcChips" role="radiogroup" aria-label="Servicio"></div>
+      </div>
+      <div class="card step1 hidden" id="barberCard">
+        <h3 class="step-t"><span>2</span>Elige tu barbero</h3>
+        <div class="chips" id="barberChips" role="radiogroup" aria-label="Barbero"></div>
       </div>
       <div class="book">
         <div class="card">
@@ -427,7 +458,7 @@ textarea{min-height:120px;resize:vertical}
 <footer>
   <div class="wrap">
     <span>© <span id="year"></span> <span data-name></span></span>
-    <span><button id="adminLink">Acceso del barbero</button><span class="admin-only"> · <button id="openPanel">Panel</button> · <button id="logoutBtn">Salir</button></span></span>
+    <span><button id="adminLink">Acceso administrador</button><span class="staff-only"> · <button id="openPanel">Panel</button> · <button id="logoutBtn">Salir</button></span></span>
   </div>
 </footer>
 
@@ -473,7 +504,7 @@ const DEFAULTS = {
 const DAYS_AHEAD = 45;
 /* Contraseña del modo de prueba (vista previa). Con Firebase conectado se usa
    el correo y la contraseña del barbero creados en Firebase (GUIA.md, paso 2). */
-const DEMO_PASSWORD_SHA256 = "9002d5b292d60e227028a860425b7f1c69a5cc17e888a92c34cd2bfa03a2b60b";
+const DEMO_PASSWORD = "BarberKing2026";
 const TZ = "America/Santiago";   // hora oficial de la barbería            // cuántos días hacia adelante se puede reservar
 
 /* ===================================================================== */
@@ -490,21 +521,26 @@ const fmt12 = t => { let [h,m] = t.split(":").map(Number); const ap = h>=12 ? "p
 const DAY_NAMES = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 const fmtLong = d => d.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"});
 
-const S = { cfg:{...DEFAULTS}, slots:{}, slotsLoaded:false, media:[], admin:false,
-            month:null, sel:null };
+const S = { cfg:{...DEFAULTS}, slots:{}, slotsLoaded:false, media:[], admin:false, role:null, user:null,
+            barbers:[], barbersLoaded:false, staff:{}, barber:"any", month:null, sel:null };
+const sk = (b, d, t) => `${b}_${d}_${t}`;          // id de un bloque: barbero_fecha_hora
+const MAX_BLOCKS = 8;                               // un cliente puede reservar hasta 8 bloques seguidos
 
 /* ---------------- Almacenamiento: modo de prueba ---------------- */
 function demoStore(){
-  const K = "barberia_demo_v1";
+  const K = "barberia_demo_v2";
   const load = () => { try { return JSON.parse(localStorage.getItem(K)) || {}; } catch { return {}; } };
   let mem = load();
   const subs = new Set(), authSubs = new Set();
-  let admin = false; try { admin = sessionStorage.getItem("bk_admin") === "1"; } catch {}
+  let user = null; try { user = JSON.parse(sessionStorage.getItem("bk_user")) || null; } catch {}
   const save = () => { try { localStorage.setItem(K, JSON.stringify(mem)); } catch { throw new Error("El navegador no tiene espacio para guardar más archivos en modo de prueba."); } };
   const emit = () => subs.forEach(f => f());
   addEventListener("storage", e => { if (e.key === K) { mem = load(); emit(); } });
   const on = f => { subs.add(f); setTimeout(f); return () => subs.delete(f); };
   const coll = k => (mem[k] ||= {});
+  const setUser = u => { user = u; try { u ? sessionStorage.setItem("bk_user", JSON.stringify(u)) : sessionStorage.removeItem("bk_user"); } catch {} authSubs.forEach(f => f(u)); };
+  // Modo de prueba: las contraseñas se comparan tal cual (todo vive solo en este navegador)
+  const sha = async t => String(t || "").trim();
   return {
     mode: "demo",
     onConfig: cb => on(() => cb(mem.config || null)),
@@ -512,16 +548,27 @@ function demoStore(){
     onSlots: (from, to, cb) => on(() => { const o = {}; for (const [k,v] of Object.entries(coll("slots"))) if (v.date >= from && v.date <= to) o[k] = v; cb(o); }),
     book: async b => { const id = b.slotIds[0];
       if (b.slotIds.some(k => coll("slots")[k])) throw new Error("taken");
-      b.slotIds.forEach(k => coll("slots")[k] = {date:b.date, time:k.split("_")[1], status:"booked", ref:id});
+      b.slotIds.forEach(k => coll("slots")[k] = {date:b.date, time:k.split("_").pop(), barber:b.barber, status:"booked", ref:id});
       coll("bookings")[id] = {...b}; save(); emit(); },
-    onBookings: (date, cb) => on(() => { const o = {}; for (const [k,v] of Object.entries(coll("bookings"))) if (v.date === date) o[k] = v; cb(o); }),
+    onBookings: (date, cb, barber) => on(() => { const o = {}; for (const [k,v] of Object.entries(coll("bookings"))) if (v.date === date && (!barber || v.barber === barber)) o[k] = v; cb(o); }),
     cancel: async (id, ids = [id]) => { ids.forEach(k => delete coll("slots")[k]); delete coll("bookings")[id]; save(); emit(); },
     editBooking: async (oldId, oldIds, b) => { const id = b.slotIds[0];
       if (b.slotIds.some(k => coll("slots")[k] && !oldIds.includes(k))) throw new Error("taken");
       oldIds.forEach(k => delete coll("slots")[k]); delete coll("bookings")[oldId];
-      b.slotIds.forEach(k => coll("slots")[k] = {date:b.date, time:k.split("_")[1], status:"booked", ref:id});
+      b.slotIds.forEach(k => coll("slots")[k] = {date:b.date, time:k.split("_").pop(), barber:b.barber, status:"booked", ref:id});
       coll("bookings")[id] = {...b}; save(); emit(); },
-    block: async (date, time) => { coll("slots")[date+"_"+time] = {date, time, status:"blocked"}; save(); emit(); },
+    block: async (barber, date, time) => { coll("slots")[sk(barber,date,time)] = {date, time, barber, status:"blocked"}; save(); emit(); },
+    setNoShow: async (id, v) => { if (coll("bookings")[id]) { coll("bookings")[id].noShow = v; save(); emit(); } },
+    getBookings: async (from, to) => { const o = {}; for (const [k,v] of Object.entries(coll("bookings"))) if (v.date >= from && v.date <= to) o[k] = {...v}; return o; },
+    onBarbers: cb => on(() => cb(Object.entries(coll("barbers")).map(([id,v]) => ({id, ...v})))),
+    onStaff: cb => on(() => cb({...coll("staff")})),
+    saveBarber: async (id, d) => { coll("barbers")[id] = d; save(); emit(); },
+    saveStaff: async (id, d) => { coll("staff")[id] = d; save(); emit(); },
+    createAccount: async (email, pass) => {
+      if (email === ADMIN_EMAIL.toLowerCase() || Object.values(coll("staff")).some(x => x.email === email)) { const e = new Error("dup"); e.code = "auth/email-already-in-use"; throw e; }
+      const uid = "b" + Date.now().toString(36); coll("pw")[uid] = await sha(pass); save(); return uid; },
+    resetPassword: async () => {},
+    changePassword: async p => { if (user) { coll("pw")[user.uid] = await sha(p); save(); } },
     onReviews: cb => on(() => cb(Object.entries(coll("reviews")).map(([id,v]) => ({id, ...v})).sort((a,b) => b.createdAt - a.createdAt))),
     addReview: async r => { coll("reviews")["r"+Date.now()] = {...r, createdAt:Date.now()}; save(); emit(); },
     delReview: async id => { delete coll("reviews")[id]; save(); emit(); },
@@ -529,23 +576,28 @@ function demoStore(){
     addMedia: async m => { const id = "m"+Date.now()+Math.random().toString(36).slice(2,6); coll("media")[id] = {...m, createdAt:Date.now()};
       try { save(); } catch (e) { delete coll("media")[id]; throw e; } emit(); },
     delMedia: async id => { delete coll("media")[id]; save(); emit(); },
-    onAuth: cb => { authSubs.add(cb); cb(admin); return () => authSubs.delete(cb); },
-    login: async (_e, pass) => {
-      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pass || ""));
-      const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,"0")).join("");
-      if (hex !== DEMO_PASSWORD_SHA256) throw new Error("bad");
-      admin = true; try { sessionStorage.setItem("bk_admin","1"); } catch {} authSubs.forEach(f => f(true)); },
-    logout: async () => { admin = false; try { sessionStorage.removeItem("bk_admin"); } catch {} authSubs.forEach(f => f(false)); }
+    onAuth: cb => { authSubs.add(cb); cb(user); return () => authSubs.delete(cb); },
+    login: async (email, pass) => {
+      email = (email || "").trim().toLowerCase(); const h = await sha(pass);
+      if (!email || email === "admin" || email === ADMIN_EMAIL.toLowerCase()) { if (h !== DEMO_PASSWORD) throw new Error("bad"); return setUser({uid:"admin", email:ADMIN_EMAIL.toLowerCase()}); }
+      const hit = Object.entries(coll("staff")).find(([, v]) => v.email === email);
+      if (!hit || coll("pw")[hit[0]] !== h) throw new Error("bad");
+      setUser({uid:hit[0], email});
+    },
+    logout: async () => setUser(null)
   };
 }
 
 /* ---------------- Almacenamiento: Firebase (real, en vivo) ---------------- */
 async function firebaseStore(){
   const B = "https://www.gstatic.com/firebasejs/10.12.2/";
-  const [{ initializeApp }, F, A] = await Promise.all([import(B+"firebase-app.js"), import(B+"firebase-firestore.js"), import(B+"firebase-auth.js")]);
+  const [{ initializeApp, deleteApp }, F, A] = await Promise.all([import(B+"firebase-app.js"), import(B+"firebase-firestore.js"), import(B+"firebase-auth.js")]);
   const app = initializeApp(FIREBASE_CONFIG);
   const db = F.getFirestore(app), auth = A.getAuth(app);
   const logErr = e => { console.error(e); };
+  const slotDoc = (k, b, id) => ({date:b.date, time:k.split("_").pop(), barber:b.barber, status:"booked", ref:id, createdAt:F.serverTimestamp()});
+  const bookDoc = b => { const o = {date:b.date, time:b.time, barber:b.barber, name:b.name, phone:b.phone, service:b.service, dur:b.dur, slotIds:b.slotIds, createdAt:F.serverTimestamp()};
+    if (typeof b.amount === "number") o.amount = b.amount; if (b.noShow) o.noShow = true; return o; };
   return {
     mode: "firebase",
     onConfig: cb => F.onSnapshot(F.doc(db,"config","main"), s => cb(s.exists() ? s.data() : null), e => { logErr(e); cb(null); }),
@@ -553,28 +605,48 @@ async function firebaseStore(){
     onSlots: (from, to, cb, onErr) => F.onSnapshot(
       F.query(F.collection(db,"slots"), F.where("date",">=",from), F.where("date","<=",to)),
       s => { const o = {}; s.forEach(d => o[d.id] = d.data()); cb(o); }, e => { logErr(e); onErr && onErr(e); }),
-    // Una reserva ocupa una o varias horas seguidas según la duración del servicio
+    // Una reserva ocupa uno o varios bloques seguidos del barbero elegido
     book: async b => {
       const id = b.slotIds[0], batch = F.writeBatch(db);
-      batch.set(F.doc(db,"bookings",id), {date:b.date, time:b.time, name:b.name, phone:b.phone, service:b.service, dur:b.dur, slotIds:b.slotIds, createdAt:F.serverTimestamp()});
-      b.slotIds.forEach(k => batch.set(F.doc(db,"slots",k), {date:b.date, time:k.split("_")[1], status:"booked", ref:id, createdAt:F.serverTimestamp()}));
+      batch.set(F.doc(db,"bookings",id), bookDoc(b));
+      b.slotIds.forEach(k => batch.set(F.doc(db,"slots",k), slotDoc(k, b, id)));
       try { await batch.commit(); } catch (e) { if (e.code === "permission-denied") throw new Error("taken"); throw e; }
     },
-    onBookings: (date, cb) => F.onSnapshot(F.query(F.collection(db,"bookings"), F.where("date","==",date)),
+    onBookings: (date, cb, barber) => F.onSnapshot(barber
+        ? F.query(F.collection(db,"bookings"), F.where("barber","==",barber), F.where("date","==",date))
+        : F.query(F.collection(db,"bookings"), F.where("date","==",date)),
       s => { const o = {}; s.forEach(d => o[d.id] = d.data()); cb(o); }, logErr),
     cancel: async (id, ids = [id]) => { const b = F.writeBatch(db); ids.forEach(k => b.delete(F.doc(db,"slots",k))); b.delete(F.doc(db,"bookings",id)); await b.commit(); },
-    // Corrige datos, cambia el servicio o mueve una reserva (solo el barbero)
+    // Corrige datos, cambia servicio o barbero, o mueve una reserva
     editBooking: async (oldId, oldIds, b) => {
       const id = b.slotIds[0];
       for (const k of b.slotIds) if (!oldIds.includes(k)) { const t = await F.getDoc(F.doc(db,"slots",k)); if (t.exists()) throw new Error("taken"); }
       const w = F.writeBatch(db);
       oldIds.filter(k => !b.slotIds.includes(k)).forEach(k => w.delete(F.doc(db,"slots",k)));
       if (oldId !== id) w.delete(F.doc(db,"bookings",oldId));
-      b.slotIds.forEach(k => w.set(F.doc(db,"slots",k), {date:b.date, time:k.split("_")[1], status:"booked", ref:id, createdAt:F.serverTimestamp()}));
-      w.set(F.doc(db,"bookings",id), {date:b.date, time:b.time, name:b.name, phone:b.phone, service:b.service, dur:b.dur, slotIds:b.slotIds, createdAt:F.serverTimestamp()});
+      b.slotIds.forEach(k => w.set(F.doc(db,"slots",k), slotDoc(k, b, id)));
+      w.set(F.doc(db,"bookings",id), bookDoc(b));
       await w.commit();
     },
-    block: (date, time) => F.setDoc(F.doc(db,"slots",date+"_"+time), {date, time, status:"blocked", createdAt:F.serverTimestamp()}),
+    block: (barber, date, time) => F.setDoc(F.doc(db,"slots",sk(barber,date,time)), {date, time, barber, status:"blocked", createdAt:F.serverTimestamp()}),
+    setNoShow: (id, v) => F.updateDoc(F.doc(db,"bookings",id), {noShow: v}),
+    getBookings: async (from, to) => { const q = await F.getDocs(F.query(F.collection(db,"bookings"), F.where("date",">=",from), F.where("date","<=",to)));
+      const o = {}; q.forEach(d => o[d.id] = d.data()); return o; },
+    onBarbers: cb => F.onSnapshot(F.collection(db,"barbers"), s => cb(s.docs.map(d => ({id:d.id, ...d.data()}))), e => { logErr(e); cb([]); }),
+    onStaff: cb => F.onSnapshot(F.collection(db,"staff"), s => { const o = {}; s.forEach(d => o[d.id] = d.data()); cb(o); }, logErr),
+    saveBarber: (id, d) => F.setDoc(F.doc(db,"barbers",id), d),
+    saveStaff: (id, d) => F.setDoc(F.doc(db,"staff",id), d),
+    // Crea la cuenta del barbero sin cerrar la sesión del administrador
+    createAccount: async (email, pass) => {
+      const sec = initializeApp(FIREBASE_CONFIG, "alta-" + Date.now());
+      try {
+        const sa = A.initializeAuth(sec, {persistence: A.inMemoryPersistence});
+        const cred = await A.createUserWithEmailAndPassword(sa, email, pass);
+        const uid = cred.user.uid; await A.signOut(sa); return uid;
+      } finally { deleteApp(sec).catch(() => {}); }
+    },
+    resetPassword: email => A.sendPasswordResetEmail(auth, email),
+    changePassword: p => A.updatePassword(auth.currentUser, p),
     onReviews: cb => F.onSnapshot(F.query(F.collection(db,"reviews"), F.orderBy("createdAt","desc"), F.limit(200)),
       s => cb(s.docs.map(d => { const v = d.data(); return {id:d.id, ...v, createdAt: v.createdAt?.toMillis ? v.createdAt.toMillis() : Date.now()}; })), logErr),
     addReview: r => F.addDoc(F.collection(db,"reviews"), {...r, createdAt:F.serverTimestamp()}),
@@ -583,7 +655,7 @@ async function firebaseStore(){
       s => cb(s.docs.map(d => ({id:d.id, ...d.data()}))), logErr),
     addMedia: m => F.addDoc(F.collection(db,"media"), {...m, createdAt:Date.now()}),
     delMedia: id => F.deleteDoc(F.doc(db,"media",id)),
-    onAuth: cb => A.onAuthStateChanged(auth, u => cb(!!u && (!ADMIN_EMAIL || (u.email||"").toLowerCase() === ADMIN_EMAIL.toLowerCase()))),
+    onAuth: cb => A.onAuthStateChanged(auth, u => cb(u ? {uid:u.uid, email:(u.email || "").toLowerCase()} : null)),
     login: (e, p) => A.signInWithEmailAndPassword(auth, e, p),
     logout: () => A.signOut(auth)
   };
@@ -676,24 +748,39 @@ function spanFor(dateStr, t, dur){
   if (i < 0 || i + n > times.length) return null;
   return times.slice(i, i + n);
 }
-// ¿Cabe el servicio empezando a la hora t? ignoreRef = reserva que se está moviendo (sus horas cuentan como libres)
-function fits(dateStr, t, dur, ignoreRef){
-  if (dateStr === ymd(now()) && toMin(t) <= nowMin()) return false;
-  const span = spanFor(dateStr, t, dur); if (!span) return false;
-  return span.every(x => { const s = S.slots[dateStr+"_"+x]; return !s || (ignoreRef && (s.ref || dateStr+"_"+x) === ignoreRef); });
+// Barberos activos, en orden
+const activeBarbers = () => S.barbers.filter(b => b.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0));
+const barberName = id => (S.barbers.find(b => b.id === id) || {}).name || "Sin asignar";
+// Bloque ocupado de un barbero (las reservas antiguas sin barbero bloquean a todos)
+const slotAt = (b, d, t) => S.slots[sk(b,d,t)] || S.slots[`${d}_${t}`] || null;
+// ¿Cabe el servicio con el barbero b empezando a la hora t? ignoreRef = reserva que se está moviendo
+function fitsFor(b, d, t, dur, ignoreRef){
+  if (d === ymd(now()) && toMin(t) <= nowMin()) return false;
+  const span = spanFor(d, t, dur); if (!span) return false;
+  return span.every(x => { const k = S.slots[sk(b,d,x)] ? sk(b,d,x) : `${d}_${x}`, s = S.slots[k];
+    return !s || (ignoreRef && (s.ref || k) === ignoreRef); });
 }
-// Horas (ids) que ocupa una reserva ya hecha
+const chosenBarbers = () => S.barber && S.barber !== "any" ? activeBarbers().filter(b => b.id === S.barber) : activeBarbers();
+const freeBarbersAt = (d, t, dur) => chosenBarbers().filter(b => fitsFor(b.id, d, t, dur));
+// Con "Cualquier barbero" se asigna al que tenga menos reservas ese día
+function pickBarber(d, t, dur){
+  const c = freeBarbersAt(d, t, dur); if (!c.length) return null;
+  const load = id => Object.values(S.slots).filter(s => s.barber === id && s.date === d && s.status === "booked").length;
+  return c.slice().sort((a, b) => load(a.id) - load(b.id))[0];
+}
+// Bloques (ids) que ocupa una reserva ya hecha
 function bookingIds(id){
   const ids = new Set([id]);
   for (const [k,v] of Object.entries(S.slots)) if (v.ref === id) ids.add(k);
   return [...ids];
 }
-function slotState(dateStr, t, dur){
-  const s = S.slots[dateStr+"_"+t];
-  if (s) return s.status === "blocked" ? "blocked" : "busy";
-  if (dateStr === ymd(now()) && toMin(t) <= nowMin()) return "past";
-  if (dur && !fits(dateStr, t, dur)) return "short";
-  return "free";
+function slotState(d, t, dur){
+  const bs = chosenBarbers(); if (!bs.length) return "blocked";
+  if (d === ymd(now()) && toMin(t) <= nowMin()) return "past";
+  if (bs.some(b => fitsFor(b.id, d, t, dur || stepMin()))) return "free";
+  const occ = bs.map(b => slotAt(b.id, d, t));
+  if (occ.every(Boolean)) return occ.every(x => x.status === "blocked") ? "blocked" : "busy";
+  return "short";
 }
 const lastDay = () => { const d = now(); d.setDate(d.getDate() + DAYS_AHEAD); return ymd(d); };
 
@@ -717,9 +804,9 @@ function renderBrand(){
   if (ig) { $("#cIg").href = `https://instagram.com/${encodeURIComponent(ig)}`; $("#cIg").textContent = "Instagram @" + ig; }
   if (tt) { $("#cTt").href = `https://www.tiktok.com/@${encodeURIComponent(tt)}`; $("#cTt").textContent = "TikTok @" + tt; }
   const ul = $("#services"); ul.innerHTML = "";
-  servicesList().forEach(s => { ul.insertAdjacentHTML("beforeend", `<li><span class="n">${esc(s.n)} <small class="dur">${fmtDur(s.dur)}</small></span>${s.p ? `<span class="lead"></span><span class="p">${esc(s.p)}</span>` : ""}</li>`); });
+  servicesList().forEach(s => { ul.insertAdjacentHTML("beforeend", `<li><span class="n">${esc(s.n)} <small class="dur">${fmtDur(s.dur)}</small></span>${showPrices() && s.p ? `<span class="lead"></span><span class="p">${esc(s.p)}</span>` : ""}</li>`); });
   const list = servicesList(); if (S.svc != null && S.svc >= list.length) S.svc = null;
-  $("#svcChips").innerHTML = list.map((x, i) => `<button class="chip" role="radio" aria-checked="${i === S.svc}" data-svc="${i}"><b>${esc(x.n)}</b><small>${fmtDur(x.dur)}${x.p ? " · " + esc(x.p) : ""}</small></button>`).join("");
+  $("#svcChips").innerHTML = list.map((x, i) => `<button class="chip" role="radio" aria-checked="${i === S.svc}" data-svc="${i}"><b>${esc(x.n)}</b><small>${fmtDur(x.dur)}${showPrices() && x.p ? " · " + esc(x.p) : ""}</small></button>`).join("");
   const rs = $("#rvService"); if (rs) { const cur = rs.value; rs.innerHTML = `<option value="">Elige el servicio</option>` + list.map(x => `<option ${x.n === cur ? "selected" : ""}>${esc(x.n)}</option>`).join(""); }
 }
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -746,13 +833,16 @@ const clientWa = p => { let d = String(p).replace(/\D/g,""); const intl = String
 const parseDur = x => { const m = String(x).match(/^(\d+(?:[.,]\d+)?)\s*(min|mins|minutos|m|h|hr|hora|horas)\.?$/i); if (!m) return 0; const v = parseFloat(m[1].replace(",", ".")); return Math.round(/^h/i.test(m[2]) ? v*60 : v); };
 const servicesList = () => String(S.cfg.services || "").split("\n").map(l => l.split("|").map(x => x.trim())).filter(a => a[0]).map(([n, ...rest]) => {
   let p = "", dur = 0; rest.forEach(x => { const d = parseDur(x); if (d) dur = d; else if (x) p = x; });
-  return {n, p, dur: dur || Math.max(30, stepMin())};   // sin duración escrita: 30 min
+  return {n, p, price: priceNum(p), dur: dur || Math.max(30, stepMin())};   // sin duración escrita: 30 min
 });
-const svcLabel = s => s.n + (s.p ? " – " + s.p : "");
+const priceNum = p => parseInt(String(p || "").replace(/\D/g, ""), 10) || 0;
+const showPrices = () => S.cfg.showPrices === true;   // precios internos: solo se muestran si el administrador lo activa
+const svcLabel = s => s.n + (showPrices() && s.p ? " – " + s.p : "");
+const money = n => "$" + Math.round(n || 0).toLocaleString("es-CL");
 const fmtDur = m => m < 60 ? `${m} min` : (m % 60 ? `${Math.floor(m/60)} h ${m%60} min` : `${m/60} h`);
 const curSvc = () => S.svc == null ? null : (servicesList()[S.svc] || null);
 const minDur = () => Math.min(...servicesList().map(s => s.dur), 999) % 999 || stepMin();
-const svcByLabel = lab => servicesList().find(s => svcLabel(s) === lab || s.n === lab);
+const svcByLabel = lab => servicesList().find(s => svcLabel(s) === lab || s.n === lab || String(lab).startsWith(s.n + " – "));
 const waLink = msg => `https://wa.me/${String(S.cfg.whatsapp).replace(/\D/g,"")}?text=${encodeURIComponent(msg)}`;
 
 function renderClock(){
@@ -789,9 +879,21 @@ function renderCalendar(){
   const mx = parseYmd(max); $("#nextM").disabled = m.getFullYear()*12+m.getMonth() >= mx.getFullYear()*12+mx.getMonth();
 }
 
+// Paso "Elige tu barbero" (se oculta si hay un solo barbero)
+function renderBarbers(){
+  const list = activeBarbers();
+  if (S.barber !== "any" && !list.some(b => b.id === S.barber)) S.barber = "any";
+  const show = list.length > 1;
+  $("#barberCard").classList.toggle("hidden", !show);
+  $("#barberChips").innerHTML = [`<button class="chip" role="radio" aria-checked="${S.barber === "any"}" data-barber="any"><b>Cualquier barbero</b><small>El primero disponible</small></button>`]
+    .concat(list.map(b => `<button class="chip" role="radio" aria-checked="${S.barber === b.id}" data-barber="${esc(b.id)}"><b>${esc(b.name)}</b><small>Barbero</small></button>`)).join("");
+  let n = 0; document.querySelectorAll("#reservar .step-t span").forEach(sp => { if (!sp.closest(".hidden")) sp.textContent = ++n; });
+}
+
 function renderSlots(){
   const box = $("#slots"), sv = curSvc(), showAll = $("#showAll").checked;
   const empty = msg => { box.innerHTML = `<div class="empty">${msg}</div>`; };
+  if (S.barbersLoaded && !activeBarbers().length) { $("#slotsCount").textContent = ""; return empty(`Muy pronto podrás reservar en línea. Mientras tanto, <a href="${waLink("Hola, quiero reservar una hora.")}" target="_blank" rel="noopener">escríbenos por WhatsApp</a>.`); }
   if (!S.sel) { $("#slotsTitle").textContent = "Elige un día"; $("#slotsCount").textContent = ""; return empty("Toca un día del calendario para ver sus horarios."); }
   const all = slotsFor(S.sel);
   $("#slotsTitle").textContent = cap(fmtLong(parseYmd(S.sel)));
@@ -799,7 +901,8 @@ function renderSlots(){
   if (!sv) { $("#slotsCount").textContent = ""; return empty("Primero elige tu servicio (paso 1) y aquí aparecerán las horas en que cabe completo."); }
   const st = all.map(t => [t, slotState(S.sel, t, sv.dur)]);
   const free = st.filter(x => x[1] === "free").length;
-  $("#slotsCount").textContent = free ? `${free} ${free === 1 ? "hora disponible" : "horas disponibles"} para ${sv.n.toLowerCase()} (${fmtDur(sv.dur)})` : "";
+  const who = S.barber !== "any" && activeBarbers().length > 1 ? ` con ${barberName(S.barber)}` : "";
+  $("#slotsCount").textContent = free ? `${free} ${free === 1 ? "hora disponible" : "horas disponibles"} para ${sv.n.toLowerCase()} (${fmtDur(sv.dur)})${who}` : "";
   const shown = showAll ? st : st.filter(x => x[1] === "free");
   if (!shown.length) return empty(`No quedan horas para ${esc(sv.n.toLowerCase())} este día. Prueba con otro día.`);
   const lab = {free:"Disponible", busy:"Ocupado", blocked:"No disponible", past:"Ya pasó", short:"Sin tiempo"};
@@ -838,25 +941,22 @@ function toast(msg){ const t = document.createElement("div"); t.className = "toa
 function openBooking(t){
   const date = S.sel, sv = curSvc();
   if (!sv) return;
-  if (S.offline) {   // sin conexión con el sistema de reservas: reservar por WhatsApp
+  const waOnly = (title, text) => {
     const msg = `Hola, quiero reservar ${sv.n} en ${S.cfg.name} el ${fmtLong(parseYmd(date))} a las ${fmt12(t)}.`;
-    openModal(`<h3>Reserva por WhatsApp</h3><p class="sub">En este momento no pudimos conectar con el sistema de reservas. Escríbenos y te confirmamos la hora.</p>
+    openModal(`<h3>${title}</h3><p class="sub">${text}</p>
       <div class="foot"><button class="btn btn-ghost" data-close>Volver</button><a class="btn btn-red" href="${waLink(msg)}" target="_blank" rel="noopener">Reservar por WhatsApp</a></div>`);
-    return;
-  }
-  if (spanFor(date, t, sv.dur).length > 16) {   // servicios muy largos: se coordinan por WhatsApp
-    const msg = `Hola, quiero reservar ${sv.n} en ${S.cfg.name} el ${fmtLong(parseYmd(date))} a las ${fmt12(t)}.`;
-    openModal(`<h3>Reserva por WhatsApp</h3><p class="sub">${esc(sv.n)} dura ${fmtDur(sv.dur)}. Para este servicio coordinamos la hora contigo por WhatsApp.</p>
-      <div class="foot"><button class="btn btn-ghost" data-close>Volver</button><a class="btn btn-red" href="${waLink(msg)}" target="_blank" rel="noopener">Escribir por WhatsApp</a></div>`);
-    return;
-  }
+  };
+  if (S.offline) return waOnly("Reserva por WhatsApp", "En este momento no pudimos conectar con el sistema de reservas. Escríbenos y te confirmamos la hora.");
+  if (spanFor(date, t, sv.dur).length > MAX_BLOCKS) return waOnly("Reserva por WhatsApp", `${esc(sv.n)} dura ${fmtDur(sv.dur)}. Para este servicio coordinamos la hora contigo por WhatsApp.`);
+  const bar = pickBarber(date, t, sv.dur); if (!bar) return;
+  const multi = activeBarbers().length > 1;
   const ov = openModal(`
     <h3>Confirma tu turno</h3>
     <p class="sub">${cap(fmtLong(parseYmd(date)))} de ${fmt12(t)} a ${fmt12(fromMin(toMin(t) + spanFor(date, t, sv.dur).length * stepMin()))}</p>
     <form id="bf" novalidate>
       <div class="field"><label for="bn">Tu nombre</label><input id="bn" autocomplete="name" maxlength="60" required></div>
       <div class="field"><label for="bp">Celular / WhatsApp</label><input id="bp" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="9 1234 5678" required></div>
-      <div class="field"><label>Servicio</label><div class="ticket" style="margin:0;padding:10px 14px"><div><b>${esc(svcLabel(sv))}</b><span>${fmtDur(sv.dur)}</span></div></div></div>
+      <div class="field"><label>Servicio</label><div class="ticket" style="margin:0;padding:10px 14px"><div><b>${esc(svcLabel(sv))}</b><span>${fmtDur(sv.dur)}</span></div>${multi ? `<div><span>Te atiende</span><b>${esc(bar.name)}</b></div>` : ""}</div></div>
       <p class="err" id="be"></p>
       <div class="foot"><button type="button" class="btn btn-ghost" data-close>Volver</button><button class="btn btn-red" id="bgo">Reservar turno</button></div>
     </form>`);
@@ -865,16 +965,17 @@ function openBooking(t){
     const name = $("#bn").value.trim(), phone = $("#bp").value.replace(/[^\d+]/g,""), service = svcLabel(sv);
     if (name.length < 2) return $("#be").textContent = "Escribe tu nombre.";
     if (phone.replace(/\D/g,"").length < 7) return $("#be").textContent = "Escribe un número de celular válido.";
-    if (!fits(date, t, sv.dur)) return $("#be").textContent = "Esa hora se acaba de ocupar. Cierra y elige otra.";
+    const who = fitsFor(bar.id, date, t, sv.dur) ? bar : pickBarber(date, t, sv.dur);
+    if (!who) return $("#be").textContent = "Esa hora se acaba de ocupar. Cierra y elige otra.";
     const b = $("#bgo"); b.disabled = true; b.textContent = "Reservando…"; $("#be").textContent = "";
     try {
-      const slotIds = spanFor(date, t, sv.dur).map(x => date+"_"+x);
-      await store.book({date, time:t, name, phone, service, dur:sv.dur, slotIds});
-      const msg = `Hola, soy ${name}. Reservé un turno en ${S.cfg.name} para el ${fmtLong(parseYmd(date))} a las ${fmt12(t)} (${service}).`;
+      const slotIds = spanFor(date, t, sv.dur).map(x => sk(who.id, date, x));
+      await store.book({date, time:t, barber:who.id, name, phone, service, dur:sv.dur, slotIds});
+      const msg = `Hola, soy ${name}. Reservé un turno en ${S.cfg.name} para el ${fmtLong(parseYmd(date))} a las ${fmt12(t)} (${service}${multi ? ", con " + who.name : ""}).`;
       ov.querySelector(".modal").innerHTML = `
         <h3>Turno reservado</h3>
         <p class="sub">Te esperamos. Llega 5 minutos antes.</p>
-        <div class="ticket"><div><span>Día</span><b>${cap(fmtLong(parseYmd(date)))}</b></div><div><span>Hora</span><b>${fmt12(t)}</b></div><div><span>Servicio</span><b>${esc(service)}</b></div><div><span>A nombre de</span><b>${esc(name)}</b></div></div>
+        <div class="ticket"><div><span>Día</span><b>${cap(fmtLong(parseYmd(date)))}</b></div><div><span>Hora</span><b>${fmt12(t)}</b></div><div><span>Servicio</span><b>${esc(service)}</b></div>${multi ? `<div><span>Barbero</span><b>${esc(who.name)}</b></div>` : ""}<div><span>A nombre de</span><b>${esc(name)}</b></div></div>
         <div class="foot"><button class="btn btn-ghost" data-close>Listo</button><a class="btn btn-red" href="${waLink(msg)}" target="_blank" rel="noopener">Avisar por WhatsApp</a></div>`;
     } catch (err) {
       b.disabled = false; b.textContent = "Reservar turno";
@@ -886,64 +987,132 @@ function openBooking(t){
 function openLogin(){
   const demo = store.mode === "demo";
   const ov = openModal(`
-    <h3>Acceso del barbero</h3><p class="sub">Solo el barbero puede entrar: aquí se ven los nombres y celulares de quienes reservan.</p>
-    <form id="lf">${demo ? "" : `<div class="field"><label for="le">Correo</label><input id="le" type="email" autocomplete="username" required></div>`}
+    <h3>Acceso administrador</h3><p class="sub">Entra con tu correo y contraseña. Los barberos también entran por aquí para ver su agenda.</p>
+    <form id="lf"><div class="field"><label for="le">Correo</label><input id="le" type="email" autocomplete="username" ${demo ? `placeholder="Administrador en la prueba: deja vacío"` : "required"}></div>
     <div class="field"><label for="lp">Contraseña</label><input id="lp" type="password" autocomplete="current-password" required></div>
     <p class="err" id="lerr"></p>
-    <div class="foot"><button type="button" class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-red">Entrar</button></div></form>`);
+    <div class="foot" style="justify-content:space-between"><button type="button" class="btn btn-ghost btn-sm" id="lforgot">Olvidé mi contraseña</button><span style="display:flex;gap:10px"><button type="button" class="btn btn-ghost" data-close>Cancelar</button><button class="btn btn-red">Entrar</button></span></div></form>`);
   ov.querySelector("#lf").addEventListener("submit", async e => {
     e.preventDefault();
-    try { await store.login(demo ? "" : $("#le").value.trim(), $("#lp").value); closeModal(); toast("Sesión iniciada."); }
-    catch { $("#lerr").textContent = demo ? "Contraseña incorrecta." : "Correo o contraseña incorrectos."; $("#lp").value = ""; $("#lp").focus(); }
+    try { await store.login($("#le").value.trim(), $("#lp").value); closeModal(); toast("Sesión iniciada."); }
+    catch { $("#lerr").textContent = "Correo o contraseña incorrectos."; $("#lp").value = ""; $("#lp").focus(); }
   });
+  $("#lforgot").onclick = async () => {
+    const em = $("#le").value.trim();
+    if (!em) return $("#lerr").textContent = "Escribe tu correo arriba y vuelve a tocar «Olvidé mi contraseña».";
+    try { await store.resetPassword(em); $("#lerr").textContent = ""; toast("Si el correo tiene cuenta, te llegará un enlace para crear una contraseña nueva."); }
+    catch { $("#lerr").textContent = "No se pudo enviar el correo. Revisa que esté bien escrito."; }
+  };
 }
 
-/* ---------------- Panel del barbero ---------------- */
+/* ---------------- Rol de quien inicia sesión ---------------- */
+let staffUnsub = null;
+function updateRole(){
+  const u = S.user; let role = null;
+  if (u) {
+    if (ADMIN_EMAIL && u.email === ADMIN_EMAIL.toLowerCase()) role = "admin";
+    else if (activeBarbers().some(b => b.id === u.uid)) role = "barber";
+  }
+  if (u && !role && S.barbersLoaded) { store.logout(); toast("Esta cuenta ya no tiene acceso. Habla con el administrador."); }
+  if (role !== S.role) {
+    S.role = role; S.admin = role === "admin";
+    document.body.classList.toggle("is-admin", S.admin); document.body.classList.toggle("is-staff", !!role);
+    $("#adminLink").classList.toggle("hidden", !!role);
+    staffUnsub && staffUnsub(); staffUnsub = null;
+    if (S.admin) staffUnsub = store.onStaff(o => { S.staff = o; panelRedraw && panelRedraw(); });
+    if (!role) closeModal();
+    renderMedia(); renderReviews();
+  }
+}
+
+/* ---------------- Panel ---------------- */
 let adminUnsub = null;
 function openPanel(tab = "agenda"){
+  const tabs = S.admin ? [["agenda","Agenda"],["ingresos","Ingresos"],["barberos","Barberos"],["ajustes","Datos y horario"],["cuenta","Mi cuenta"]] : [["agenda","Mi agenda"],["cuenta","Mi cuenta"]];
+  const title = S.admin ? "Panel del administrador" : `Panel de ${esc(barberName(S.user?.uid))}`;
   const ov = openModal(`
-    <div style="display:flex;justify-content:space-between;align-items:start;gap:12px"><h3>Panel del barbero</h3><button class="icon-btn" data-close aria-label="Cerrar">✕</button></div>
-    <div class="tabs" role="tablist"><button data-tab="agenda">Agenda</button><button data-tab="ajustes">Datos y horario</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:start;gap:12px"><h3>${title}</h3><button class="icon-btn" data-close aria-label="Cerrar">✕</button></div>
+    <div class="tabs" role="tablist">${tabs.map(([k,l]) => `<button data-tab="${k}">${l}</button>`).join("")}</div>
     <div id="pBody"></div>`, true);
   const show = t => {
     ov.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
-    adminUnsub && adminUnsub(); adminUnsub = null;
-    t === "agenda" ? panelAgenda() : panelSettings();
+    adminUnsub && adminUnsub(); adminUnsub = null; panelRedraw = null;
+    ({agenda: () => panelAgenda(), ingresos: panelIncome, barberos: panelBarbers, ajustes: panelSettings, cuenta: panelAccount})[t]();
   };
   ov.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => show(b.dataset.tab)));
   show(tab);
 }
 
+// Filas de la agenda de un barbero en un día
+function agendaRows(bId, d, bookings, compact, M = S.slots){
+  const times = new Set(slotsFor(d));
+  Object.values(M).forEach(s => s.date === d && s.barber === bId && times.add(s.time));
+  const list = [...times].sort();
+  if (!list.length) return `<li style="display:block" class="notice">Ese día está cerrado según el horario.</li>`;
+  return list.map(t => {
+    const k = sk(bId, d, t), s = M[k], old = M[`${d}_${t}`], b = bookings[k];
+    if (!s && old) return `<li><span class="t">${fmt12(t)}</span><span class="who st-blocked">Ocupado por una reserva sin barbero asignado</span><span></span></li>`;
+    if (s && s.status === "booked" && s.ref && s.ref !== k) { const m = bookings[s.ref];
+      return `<li><span class="t">${fmt12(t)}</span><span class="who st-blocked">↳ Continúa: ${esc(m?.name || "reserva anterior")}${m?.service ? " (" + esc(m.service) + ")" : ""}</span><span></span></li>`; }
+    if (s && s.status === "booked") return bookedRow(k, t, b);
+    if (s && s.status === "blocked") return `<li><span class="t">${fmt12(t)}</span><span class="who st-blocked">Bloqueado</span><button class="btn btn-ghost btn-sm" data-free="${esc(k)}">Liberar</button></li>`;
+    if (compact) return "";
+    return `<li><span class="t">${fmt12(t)}</span><span class="who st-free">Libre</span><button class="btn btn-ghost btn-sm" data-block="${esc(bId)}|${t}">Bloquear</button></li>`;
+  }).join("") || `<li style="display:block" class="notice">Sin reservas este día. Elige solo a este barbero arriba para ver y bloquear sus horas libres.</li>`;
+}
+const isPast = b => !!b && (b.date < ymd(now()) || (b.date === ymd(now()) && toMin(b.time) <= nowMin()));
+const bookedRow = (k, t, b) => `<li><span class="t">${fmt12(t)}</span><span class="who"><b>${esc(b?.name || "Reservado")}</b>${b?.noShow ? ` <span class="tag-ns">No vino</span>` : ""}<small>${esc(b?.service || "")}${b?.dur ? " · " + fmtDur(b.dur) : ""} ${b?.phone ? `· <a href="${esc(clientWa(b.phone))}" target="_blank" rel="noopener">${esc(b.phone)}</a>` : ""}</small></span><span class="acts">${isPast(b) ? `<button class="btn btn-ghost btn-sm" data-noshow="${esc(k)}">${b.noShow ? "Sí vino" : "No vino"}</button>` : ""}<button class="btn btn-ghost btn-sm" data-edit="${esc(k)}">Editar</button><button class="btn btn-ghost btn-sm" data-cancel="${esc(k)}">Cancelar</button></span></li>`;
+// Reservas antiguas (antes de tener barberos): solo el administrador
+function legacyRows(d, bookings, M = S.slots){
+  const keys = Object.keys(M).filter(k => { const s = M[k]; return !s.barber && s.date === d; }).sort();
+  return keys.map(k => { const s = M[k], t = s.time;
+    if (s.status === "blocked") return `<li><span class="t">${fmt12(t)}</span><span class="who st-blocked">Bloqueado (todos)</span><button class="btn btn-ghost btn-sm" data-free="${esc(k)}">Liberar</button></li>`;
+    if (s.ref && s.ref !== k) return `<li><span class="t">${fmt12(t)}</span><span class="who st-blocked">↳ Continúa: ${esc(bookings[s.ref]?.name || "")}</span><span></span></li>`;
+    return bookedRow(k, t, bookings[k]);
+  }).join("");
+}
+
 function panelAgenda(day){
-  const body = $("#pBody");
-  body.innerHTML = `<div class="row2" style="align-items:end"><div class="field"><label for="ad">Día</label><input type="date" id="ad" value="${day || S.sel || ymd(now())}"></div><p class="notice" style="margin:0 0 22px">Las reservas aparecen aquí al instante.</p></div><ul class="agenda" id="ag"></ul>`;
+  const body = $("#pBody"), me = S.user?.uid;
+  if (!S.admin) S.agBarber = me; else if (!S.agBarber || (S.agBarber !== "all" && S.agBarber !== "legacy" && !activeBarbers().some(b => b.id === S.agBarber))) S.agBarber = "all";
+  body.innerHTML = `<div class="row2" style="align-items:end"><div class="field"><label for="ad">Día</label><input type="date" id="ad" value="${day || S.sel || ymd(now())}"></div>
+    ${S.admin ? `<div class="field"><label for="abar">Barbero</label><select id="abar"></select></div>` : `<p class="notice" style="margin:0 0 22px">Solo ves tus reservas. Aparecen aquí al instante.</p>`}</div><div id="ag"></div>`;
   let bookings = {};
+  // Bloques del día: los en vivo + los que se deducen de las reservas (sirve también para días pasados)
+  const dayMap = d => { const M = {};
+    for (const [id, b] of Object.entries(bookings)) (b.slotIds || [id]).forEach(k => { M[k] = {date:b.date, time:k.split("_").pop(), barber:b.barber, status:"booked", ref:id}; });
+    for (const [k, v] of Object.entries(S.slots)) if (v.date === d) M[k] = v;
+    return M; };
   const draw = () => {
     if (!$("#ag")) return;
     const d = $("#ad").value; if (!d) return;
-    const times = new Set(slotsFor(d));
-    Object.values(S.slots).forEach(s => s.date === d && times.add(s.time));
-    const list = [...times].sort();
-    if (!list.length) { $("#ag").innerHTML = `<li style="display:block" class="notice">Ese día está cerrado según tu horario.</li>`; return; }
-    $("#ag").innerHTML = list.map(t => {
-      const id = d+"_"+t, s = S.slots[id], b = bookings[id];
-      if (s && s.status === "booked" && s.ref && s.ref !== id) { const m = bookings[s.ref];
-        return `<li><span class="t">${fmt12(t)}</span><span class="who st-blocked">↳ Continúa: ${esc(m?.name || "reserva anterior")}${m?.service ? " (" + esc(m.service) + ")" : ""}</span><span></span></li>`; }
-      if (s && s.status === "booked") return `<li><span class="t">${fmt12(t)}</span><span class="who"><b>${esc(b?.name || "Reservado")}</b><small>${esc(b?.service || "")}${b?.dur ? " · " + fmtDur(b.dur) : ""} ${b?.phone ? `· <a href="${esc(clientWa(b.phone))}" target="_blank" rel="noopener">${esc(b.phone)}</a>` : ""}</small></span><span class="acts"><button class="btn btn-ghost btn-sm" data-edit="${id}">Editar</button><button class="btn btn-ghost btn-sm" data-cancel="${id}">Cancelar</button></span></li>`;
-      if (s && s.status === "blocked") return `<li><span class="t">${fmt12(t)}</span><span class="who st-blocked">Bloqueado</span><button class="btn btn-ghost btn-sm" data-free="${id}">Liberar</button></li>`;
-      return `<li><span class="t">${fmt12(t)}</span><span class="who st-free">Libre</span><button class="btn btn-ghost btn-sm" data-block="${t}">Bloquear</button></li>`;
-    }).join("");
+    const M = dayMap(d);
+    const hasLegacy = Object.values(M).some(s => !s.barber && s.date === d);
+    if (S.admin) {
+      const opts = [["all","Todos"]].concat(activeBarbers().map(b => [b.id, b.name])).concat(hasLegacy ? [["legacy","Sin barbero asignado"]] : []);
+      if (!opts.some(o => o[0] === S.agBarber)) S.agBarber = "all";
+      $("#abar").innerHTML = opts.map(([v,l]) => `<option value="${esc(v)}" ${v === S.agBarber ? "selected" : ""}>${esc(l)}</option>`).join("");
+    }
+    const ids = S.admin ? (S.agBarber === "all" ? activeBarbers().map(b => b.id) : S.agBarber === "legacy" ? [] : [S.agBarber]) : [me];
+    const compact = S.admin && S.agBarber === "all" && ids.length > 1;
+    let h = (compact ? `<p class="notice" style="margin:0 0 6px">Vista de todos: solo reservas y bloqueos. Elige un barbero para ver sus horas libres.</p>` : "")
+      + ids.map(id => `${ids.length > 1 || S.admin ? `<h4 class="ag-h">${esc(barberName(id))}</h4>` : ""}<ul class="agenda">${agendaRows(id, d, bookings, compact, M)}</ul>`).join("");
+    if (S.admin && hasLegacy && (S.agBarber === "all" || S.agBarber === "legacy")) h += `<h4 class="ag-h">Sin barbero asignado</h4><p class="notice" style="margin:0 0 6px">Reservas hechas antes de tener barberos. Tócalas en «Editar» para asignarles uno.</p><ul class="agenda">${legacyRows(d, bookings, M)}</ul>`;
+    if (S.admin && !activeBarbers().length) h = `<div class="empty">Aún no hay barberos. Créalos en la pestaña «Barberos» para que los clientes puedan reservar.</div>` + (hasLegacy ? `<ul class="agenda">${legacyRows(d, bookings, M)}</ul>` : "");
+    $("#ag").innerHTML = h;
   };
-  const sub = () => { adminUnsub && adminUnsub(); bookings = {}; adminUnsub = store.onBookings($("#ad").value, o => { bookings = o; draw(); }); draw(); };
+  const sub = () => { adminUnsub && adminUnsub(); bookings = {}; adminUnsub = store.onBookings($("#ad").value, o => { bookings = o; draw(); }, S.admin ? null : me); draw(); };
   $("#ad").addEventListener("change", sub);
+  if (S.admin) $("#abar").addEventListener("change", e => { S.agBarber = e.target.value; draw(); });
   $("#ag").addEventListener("click", async e => {
-    const c = e.target.closest("[data-cancel]"), f = e.target.closest("[data-free]"), bl = e.target.closest("[data-block]"), ed = e.target.closest("[data-edit]");
+    const c = e.target.closest("[data-cancel]"), f = e.target.closest("[data-free]"), bl = e.target.closest("[data-block]"), ed = e.target.closest("[data-edit]"), ns = e.target.closest("[data-noshow]");
     if (ed) { const b = bookings[ed.dataset.edit]; if (b) editBookingForm(ed.dataset.edit, b); return; }
+    if (ns) { const b = bookings[ns.dataset.noshow]; try { await store.setNoShow(ns.dataset.noshow, !b?.noShow); toast(b?.noShow ? "Marcado como atendido." : "Marcado: no vino. No se suma a los ingresos."); } catch { toast("No se pudo guardar el cambio."); } return; }
     try {
       if (c) { if (!c.classList.contains("arm")) { c.classList.add("arm"); c.textContent = "¿Seguro? Toca otra vez"; setTimeout(() => { c.classList.remove("arm"); c.textContent = "Cancelar"; }, 3000); return; }
-               await store.cancel(c.dataset.cancel, bookingIds(c.dataset.cancel)); toast("Turno cancelado."); }
+               const id = c.dataset.cancel; await store.cancel(id, [...new Set([...bookingIds(id), ...(bookings[id]?.slotIds || [])])]); toast("Turno cancelado."); }
       if (f) await store.cancel(f.dataset.free, [f.dataset.free]);
-      if (bl) await store.block($("#ad").value, bl.dataset.block);
+      if (bl) { const [bid, t] = bl.dataset.block.split("|"); await store.block(bid, $("#ad").value, t); }
     } catch { toast("No se pudo guardar el cambio."); }
   });
   panelRedraw = draw;
@@ -951,52 +1120,57 @@ function panelAgenda(day){
 }
 let panelRedraw = null;
 
-/* Editar o mover una reserva */
+/* Editar o mover una reserva (el administrador también puede cambiar el barbero) */
 function editBookingForm(oldId, b){
-  const body = $("#pBody"), svc = servicesList(), back = () => panelAgenda(b.date), oldIds = bookingIds(oldId);
+  const body = $("#pBody"), svc = servicesList(), back = () => panelAgenda(b.date), oldIds = [...new Set([...bookingIds(oldId), ...(b.slotIds || [])])];
   const svcOpts = svc.map(s => ({lab: svcLabel(s), dur: s.dur}));
   if (b.service && !svcOpts.some(o => o.lab === b.service)) svcOpts.unshift({lab: b.service, dur: b.dur || oldIds.length * stepMin()});
   const durOf = lab => (svcOpts.find(o => o.lab === lab) || {}).dur || stepMin();
+  const bars = activeBarbers(), curBar = b.barber && bars.some(x => x.id === b.barber) ? b.barber : (bars[0]?.id || "");
   body.innerHTML = `
-    <p class="sub" style="margin-top:-6px">Reserva de <b>${esc(b.name)}</b>: ${cap(fmtLong(parseYmd(b.date)))} a las ${fmt12(b.time)}</p>
+    <p class="sub" style="margin-top:-6px">Reserva de <b>${esc(b.name)}</b>: ${cap(fmtLong(parseYmd(b.date)))} a las ${fmt12(b.time)}${b.barber ? " con " + esc(barberName(b.barber)) : ""}</p>
     <form id="ef" novalidate>
       <div class="row2"><div class="field"><label for="en">Nombre</label><input id="en" maxlength="60" value="${esc(b.name)}"></div>
       <div class="field"><label for="ep">Celular / WhatsApp</label><input id="ep" type="tel" maxlength="20" value="${esc(b.phone)}"></div></div>
-      <div class="field"><label for="es">Servicio</label><select id="es">${svcOpts.map(o => `<option value="${esc(o.lab)}" ${o.lab === b.service ? "selected" : ""}>${esc(o.lab)} (${fmtDur(o.dur)})</option>`).join("")}</select></div>
-      <div class="row2"><div class="field"><label for="edd">Día</label><input type="date" id="edd" value="${b.date}" min="${ymd(now())}"></div>
+      <div class="row2"><div class="field"><label for="es">Servicio</label><select id="es">${svcOpts.map(o => `<option value="${esc(o.lab)}" ${o.lab === b.service ? "selected" : ""}>${esc(o.lab)} (${fmtDur(o.dur)})</option>`).join("")}</select></div>
+      <div class="field"><label for="eb">Barbero</label><select id="eb" ${S.admin ? "" : "disabled"}>${bars.map(x => `<option value="${esc(x.id)}" ${x.id === curBar ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></div></div>
+      ${S.admin ? `<div class="field"><label for="eam">Monto cobrado (opcional, solo lo ves tú). Déjalo vacío para usar el precio del servicio.</label><input id="eam" inputmode="numeric" value="${typeof b.amount === "number" ? b.amount : ""}" placeholder="Ej.: 9000" style="max-width:220px"></div>` : ""}
+      <div class="row2"><div class="field"><label for="edd">Día</label><input type="date" id="edd" value="${b.date}" ${isPast(b) ? "" : `min="${ymd(now())}"`}></div>
       <div class="field"><label for="et">Hora (solo horas libres)</label><select id="et"></select></div></div>
       <p class="err" id="eerr"></p>
       <div class="foot"><button type="button" class="btn btn-ghost" id="eback">Volver a la agenda</button><button class="btn btn-red" id="esave">Guardar cambios</button></div>
     </form>`;
   const fillTimes = () => {
-    const d = $("#edd").value, sel = $("#et"); if (!d) { sel.innerHTML = ""; return; }
-    const dur = durOf($("#es").value);
-    const opts = slotsFor(d).filter(t => fits(d, t, dur, oldId) || (d === b.date && t === b.time && spanFor(d, t, dur) && spanFor(d, t, dur).every(x => { const s = S.slots[d+"_"+x]; return !s || (s.ref || d+"_"+x) === oldId; })));
-    sel.innerHTML = opts.length ? opts.map(t => `<option value="${t}" ${d === b.date && t === b.time ? "selected" : ""}>${fmt12(t)}${d === b.date && t === b.time ? " (actual)" : ""}</option>`).join("") : `<option value="">No hay horas libres ese día</option>`;
+    const d = $("#edd").value, sel = $("#et"), bid = $("#eb").value; if (!d || !bid) { sel.innerHTML = ""; return; }
+    const dur = durOf($("#es").value), same = d === b.date && bid === b.barber;
+    const opts = slotsFor(d).filter(t => fitsFor(bid, d, t, dur, oldId) || (same && t === b.time && isPast(b)) || (same && t === b.time && spanFor(d, t, dur) && spanFor(d, t, dur).every(x => { const k = S.slots[sk(bid,d,x)] ? sk(bid,d,x) : `${d}_${x}`, s = S.slots[k]; return !s || (s.ref || k) === oldId; })));
+    sel.innerHTML = opts.length ? opts.map(t => `<option value="${t}" ${d === b.date && t === b.time ? "selected" : ""}>${fmt12(t)}${same && t === b.time ? " (actual)" : ""}</option>`).join("") : `<option value="">No hay horas libres ese día</option>`;
   };
   fillTimes();
-  $("#edd").addEventListener("change", fillTimes);
-  $("#es").addEventListener("change", fillTimes);
+  ["#edd","#es","#eb"].forEach(x => $(x).addEventListener("change", fillTimes));
   $("#eback").onclick = back;
   $("#ef").addEventListener("submit", async e => {
     e.preventDefault();
-    const nb = { name:$("#en").value.trim(), phone:$("#ep").value.replace(/[^\d+]/g,""), service:$("#es").value, date:$("#edd").value, time:$("#et").value };
+    const nb = { name:$("#en").value.trim(), phone:$("#ep").value.replace(/[^\d+]/g,""), service:$("#es").value, date:$("#edd").value, time:$("#et").value, barber:$("#eb").value };
     nb.dur = durOf(nb.service);
+    if (b.noShow) nb.noShow = true;
+    if (S.admin) { const a = $("#eam").value.trim(); if (a) nb.amount = priceNum(a); } else if (typeof b.amount === "number") nb.amount = b.amount;
     if (nb.name.length < 2) return $("#eerr").textContent = "Escribe el nombre del cliente.";
     if (nb.phone.replace(/\D/g,"").length < 7) return $("#eerr").textContent = "Escribe un celular válido.";
+    if (!nb.barber) return $("#eerr").textContent = "Primero crea un barbero en la pestaña «Barberos».";
     if (!nb.date || !nb.time) return $("#eerr").textContent = "Elige un día y una hora libre.";
-    const span = nb.time && spanFor(nb.date, nb.time, nb.dur);
+    const span = spanFor(nb.date, nb.time, nb.dur);
     if (!span) return $("#eerr").textContent = "Ese servicio no alcanza a terminar antes del cierre. Elige otra hora.";
-    nb.slotIds = span.map(x => nb.date+"_"+x);
-    const moved = nb.date !== b.date || nb.time !== b.time;
+    nb.slotIds = span.map(x => sk(nb.barber, nb.date, x));
+    const moved = nb.date !== b.date || nb.time !== b.time || nb.barber !== b.barber;
     $("#esave").disabled = true;
     try {
       await store.editBooking(oldId, oldIds, nb);
       if (!moved) { toast("Reserva actualizada."); back(); return; }
-      const msg = `Hola ${nb.name}, te escribimos de ${S.cfg.name}. Tu turno quedó para el ${fmtLong(parseYmd(nb.date))} a las ${fmt12(nb.time)} ¡Te esperamos!`;
+      const msg = `Hola ${nb.name}, te escribimos de ${S.cfg.name}. Tu turno quedó para el ${fmtLong(parseYmd(nb.date))} a las ${fmt12(nb.time)}${bars.length > 1 ? ", con " + barberName(nb.barber) : ""} ¡Te esperamos!`;
       body.innerHTML = `
-        <div class="ticket"><div><span>Cliente</span><b>${esc(nb.name)}</b></div><div><span>Nuevo día</span><b>${cap(fmtLong(parseYmd(nb.date)))}</b></div><div><span>Nueva hora</span><b>${fmt12(nb.time)}</b></div></div>
-        <p class="sub">La hora anterior (${fmt12(b.time)} del ${fmtLong(parseYmd(b.date))}) quedó libre.</p>
+        <div class="ticket"><div><span>Cliente</span><b>${esc(nb.name)}</b></div><div><span>Día</span><b>${cap(fmtLong(parseYmd(nb.date)))}</b></div><div><span>Hora</span><b>${fmt12(nb.time)}</b></div><div><span>Barbero</span><b>${esc(barberName(nb.barber))}</b></div></div>
+        <p class="sub">El horario anterior quedó libre.</p>
         <div class="foot"><button class="btn btn-ghost" id="eback2">Volver a la agenda</button><a class="btn btn-red" href="${esc(clientWa(nb.phone))}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Avisar al cliente por WhatsApp</a></div>`;
       $("#eback2").onclick = () => panelAgenda(nb.date);
       toast("Reserva movida.");
@@ -1008,8 +1182,154 @@ function editBookingForm(oldId, b){
   });
 }
 
+/* Barberos: crear y eliminar cuentas (solo administrador) */
+function panelBarbers(){
+  const body = $("#pBody"), me = S.user;
+  let note = "";
+  const draw = () => {
+    if (!$("#pBody") || !$("#pBody").dataset) return;
+    const list = activeBarbers(), today = ymd(now());
+    body.innerHTML = `<p class="sub" style="margin-top:-6px">Cada barbero entra con su correo y contraseña en «Acceso administrador» y solo ve su propia agenda.</p>
+      <ul class="agenda" id="blist">${list.length ? list.map(b => `<li><span class="t" style="font-size:19px">${esc(b.name)}</span><span class="who"><small>${esc(S.staff[b.id]?.email || (b.id === me?.uid ? me.email : ""))}${b.id === me?.uid ? " · eres tú" : ""}</small></span><button class="btn btn-ghost btn-sm" data-delb="${esc(b.id)}">Eliminar</button></li>`).join("")
+        : `<li style="display:block" class="notice">Aún no hay barberos. Agrega al menos uno para que los clientes puedan reservar.</li>`}</ul>
+      <p class="err" id="blerr"></p>
+      ${note}
+      <form class="panel-box" id="nbf" novalidate>
+        <h4>Agregar barbero</h4>
+        <div class="row2"><div class="field"><label for="nbn">Nombre (lo ven los clientes)</label><input id="nbn" maxlength="30" placeholder="Ej.: Carlos"></div>
+        <div class="field"><label for="nbe">Correo para entrar</label><input id="nbe" type="email" placeholder="carlos@gmail.com"></div></div>
+        <div class="row2"><div class="field"><label for="nbp">Contraseña inicial (mínimo 6 caracteres)</label><input id="nbp" type="text" autocomplete="off"></div>
+        <div class="field" style="align-self:end"><button class="btn btn-red" id="nbgo">Crear barbero</button></div></div>
+        <p class="err" id="nberr"></p>
+      </form>
+      ${me && !list.some(b => b.id === me.uid) ? `<form class="panel-box" id="mef"><h4>¿Tú también atiendes clientes?</h4><div class="row2"><div class="field"><label for="men">Tu nombre como barbero</label><input id="men" maxlength="30"></div><div class="field" style="align-self:end"><button class="btn btn-ghost">Agregarme como barbero</button></div></div></form>` : ""}`;
+    $("#blist").onclick = async e => {
+      const d = e.target.closest("[data-delb]"); if (!d) return;
+      const id = d.dataset.delb, b = S.barbers.find(x => x.id === id);
+      const future = Object.entries(S.slots).filter(([k, s]) => s.barber === id && s.status === "booked" && (!s.ref || s.ref === k) && s.date >= today).length;
+      if (future) return $("#blerr").textContent = `${b.name} tiene ${future} ${future === 1 ? "reserva próxima" : "reservas próximas"}. Muévelas a otro barbero desde la Agenda («Editar») antes de eliminarlo.`;
+      if (!d.classList.contains("arm")) { d.classList.add("arm"); d.textContent = "¿Seguro? Toca otra vez"; setTimeout(() => { d.classList.remove("arm"); d.textContent = "Eliminar"; }, 3000); return; }
+      try { const { id: _x, ...data } = b; await store.saveBarber(id, {...data, active:false}); note = ""; toast(`${b.name} ya no tiene acceso.`); } catch { toast("No se pudo eliminar."); }
+    };
+    $("#nbf").addEventListener("submit", async e => {
+      e.preventDefault();
+      const name = $("#nbn").value.trim(), email = $("#nbe").value.trim().toLowerCase(), pass = $("#nbp").value, err = $("#nberr");
+      if (name.length < 2) return err.textContent = "Escribe el nombre del barbero.";
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return err.textContent = "Escribe un correo válido.";
+      if (email === ADMIN_EMAIL.toLowerCase()) return err.textContent = "Ese es el correo del administrador. Para atender como barbero usa «Agregarme como barbero».";
+      const prev = Object.entries(S.staff).find(([, v]) => v.email === email);
+      if (!prev && pass.length < 6) return err.textContent = "La contraseña debe tener al menos 6 caracteres.";
+      $("#nbgo").disabled = true; err.textContent = "";
+      try {
+        let uid, text;
+        if (prev) { uid = prev[0]; text = `<b>${esc(name)}</b> volvió a tener acceso. Entra con su correo <b>${esc(email)}</b> y la contraseña que ya tenía.`; }
+        else { uid = await store.createAccount(email, pass); text = `Listo. Pásale a <b>${esc(name)}</b> sus datos para entrar: correo <b>${esc(email)}</b> y contraseña <b>${esc(pass)}</b>. Puede cambiarla en «Mi cuenta».`; }
+        await store.saveStaff(uid, {email, name});
+        await store.saveBarber(uid, {name, active:true, order:Date.now()});
+        note = `<div class="okbox">${text}</div>`; draw();
+      } catch (er) {
+        $("#nbgo").disabled = false;
+        const c = er.code || "";
+        err.textContent = c === "auth/email-already-in-use" ? "Ese correo ya tiene una cuenta. Usa otro correo para este barbero."
+          : c === "auth/operation-not-allowed" || c === "auth/admin-restricted-operation" ? "Firebase no permite crear cuentas. Activa «Habilitar la creación (registro)» en Firebase → Authentication → Configuración → Acciones del usuario."
+          : c === "auth/weak-password" ? "La contraseña es muy débil: usa al menos 6 caracteres." : c === "auth/invalid-email" ? "El correo no es válido." : "No se pudo crear el barbero. Revisa tu conexión.";
+      }
+    });
+    $("#mef") && $("#mef").addEventListener("submit", async e => {
+      e.preventDefault(); const name = $("#men").value.trim();
+      if (name.length < 2) return;
+      try { await store.saveStaff(me.uid, {email: me.email, name}); await store.saveBarber(me.uid, {name, active:true, order:Date.now()}); note = ""; toast("Ahora también apareces como barbero."); }
+      catch { toast("No se pudo guardar."); }
+    });
+  };
+  // no redibujar mientras el administrador escribe en el formulario
+  panelRedraw = () => { const a = document.activeElement; if (a && body.contains(a) && /INPUT|SELECT|TEXTAREA/.test(a.tagName)) return; draw(); };
+  draw();
+}
+
+/* Ingresos: cuánto se generó en el día, la semana o el mes (solo administrador) */
+function panelIncome(){
+  const body = $("#pBody");
+  S.incP = S.incP || "day"; S.incRef = S.incRef || ymd(now());
+  body.innerHTML = `<div class="inc-bar"><div class="seg" role="tablist">${[["day","Día"],["week","Semana"],["month","Mes"]].map(([k,l]) => `<button data-p="${k}" aria-selected="${S.incP === k}">${l}</button>`).join("")}</div>
+    <input type="date" id="incd" value="${S.incRef}" aria-label="Fecha de referencia">
+    <select id="incb" aria-label="Barbero" style="width:auto;min-width:190px"></select><span class="notice" id="incr" style="margin:0"></span></div><div id="inc"><div class="empty">Calculando…</div></div>`;
+  S.incB = S.incB || "all";
+  const range = () => {
+    const r = parseYmd(S.incRef);
+    if (S.incP === "day") return [S.incRef, S.incRef, cap(fmtLong(r))];
+    if (S.incP === "week") { const a = new Date(r); a.setDate(r.getDate() - ((r.getDay() + 6) % 7)); const z = new Date(a); z.setDate(a.getDate() + 6);
+      return [ymd(a), ymd(z), `Semana del ${a.getDate()} de ${a.toLocaleDateString("es-CL",{month:"long"})} al ${z.getDate()} de ${z.toLocaleDateString("es-CL",{month:"long"})}`]; }
+    const a = new Date(r.getFullYear(), r.getMonth(), 1), z = new Date(r.getFullYear(), r.getMonth() + 1, 0);
+    return [ymd(a), ymd(z), cap(a.toLocaleDateString("es-CL",{month:"long",year:"numeric"}))];
+  };
+  const load = async () => {
+    const [from, to, label] = range(); $("#incr").textContent = label;
+    let all;
+    try { all = await store.getBookings(from, to); } catch { $("#inc").innerHTML = `<div class="empty">No se pudieron cargar los datos. Revisa tu conexión.</div>`; return; }
+    // Selector de barbero: todos, cada barbero (también los que ya no están, si tienen atenciones) y "Sin asignar"
+    const ids = new Set(activeBarbers().map(b => b.id)); Object.values(all).forEach(b => ids.add(b.barber || "none"));
+    const opts = [["all","Todos los barberos"]].concat([...ids].filter(i => i !== "none").map(i => [i, barberName(i) + (activeBarbers().some(b => b.id === i) ? "" : " (ya no está)")]))
+      .concat(ids.has("none") ? [["none","Sin barbero asignado"]] : []);
+    if (!opts.some(o => o[0] === S.incB)) S.incB = "all";
+    $("#incb").innerHTML = opts.map(([v,l]) => `<option value="${esc(v)}" ${v === S.incB ? "selected" : ""}>${esc(l)}</option>`).join("");
+    const one = S.incB !== "all";
+    $("#incr").textContent = label + (one ? " · " + (S.incB === "none" ? "Sin barbero asignado" : barberName(S.incB)) : "");
+    const rows = Object.entries(all).filter(([, b]) => !one || (b.barber || "none") === S.incB).map(([id, b]) => {
+      const sv = svcByLabel(b.service), amount = typeof b.amount === "number" ? b.amount : (sv ? sv.price : 0);
+      return {id, ...b, amount, svcName: sv ? sv.n : String(b.service || "Otro").split(" – ")[0], past: isPast(b), noPrice: typeof b.amount !== "number" && !(sv && sv.price)};
+    });
+    const done = rows.filter(r => r.past && !r.noShow), pend = rows.filter(r => !r.past), ns = rows.filter(r => r.past && r.noShow);
+    const sum = a => a.reduce((t, r) => t + r.amount, 0), total = sum(done);
+    const group = (list, key) => { const m = new Map(); list.forEach(r => { const k = key(r); const g = m.get(k) || {n:0, t:0}; g.n++; g.t += r.amount; m.set(k, g); }); return [...m.entries()].sort((a, b) => b[1].t - a[1].t || b[1].n - a[1].n); };
+    const bar = (v, max) => `<span class="ibar"><i style="width:${max ? Math.max(2, Math.round(v / max * 100)) : 0}%"></i></span>`;
+    const table = (title, head, list) => { const max = Math.max(0, ...list.map(([, g]) => g.t));
+      return `<h4 class="ag-h">${title}</h4><table class="itab${title === "Por barbero" ? " pick" : ""}"><thead><tr><th>${head}</th><th class="num">Atenciones</th><th class="num">Generado</th><th class="num">%</th><th aria-hidden="true"></th></tr></thead><tbody>${list.map(([k, g]) => `<tr><td>${esc(k)}</td><td class="num">${g.n}</td><td class="num"><b>${money(g.t)}</b></td><td class="num">${total ? Math.round(g.t / total * 100) : 0}%</td><td>${bar(g.t, max)}</td></tr>`).join("")}</tbody></table>`; };
+    const noPrice = done.filter(r => r.noPrice).length;
+    let h = (one ? `<h4 class="ag-h" style="margin-top:0">Ingresos de ${esc(S.incB === "none" ? "reservas sin barbero" : barberName(S.incB))}</h4>` : "") + `<div class="tiles">
+      <div class="tile big"><span>Generado</span><b>${money(total)}</b><small>${done.length} ${done.length === 1 ? "atención realizada" : "atenciones realizadas"}</small></div>
+      <div class="tile"><span>Ticket promedio</span><b>${money(done.length ? total / done.length : 0)}</b><small>por atención</small></div>
+      <div class="tile"><span>Por atender</span><b>${money(sum(pend))}</b><small>${pend.length} ${pend.length === 1 ? "reserva próxima" : "reservas próximas"}</small></div>
+      <div class="tile"><span>No vinieron</span><b>${ns.length}</b><small>${ns.length ? money(sum(ns)) + " no cobrados" : "sin ausencias"}</small></div></div>`;
+    if (noPrice) h += `<p class="notice warn">${noPrice} ${noPrice === 1 ? "atención no tiene" : "atenciones no tienen"} precio, así que suman $0. Agrega los precios en «Datos y horario» (ej.: Corte clásico | $10.000 | 30 min).</p>`;
+    if (!done.length && !pend.length) h += `<div class="empty">No hay atenciones en este período.</div>`;
+    else {
+      if (done.length) h += (one ? "" : table("Por barbero", "Barbero", group(done, r => r.barber ? barberName(r.barber) : "Sin asignar")) + `<p class="notice" style="margin:6px 0 0">Para ver el detalle de un barbero, elígelo arriba o toca su nombre.</p>`) + table("Por servicio", "Servicio", group(done, r => r.svcName));
+      if (S.incP !== "day" && done.length) {
+        const days = group(done, r => r.date).sort((a, b) => a[0] < b[0] ? -1 : 1), max = Math.max(...days.map(([, g]) => g.t));
+        h += `<h4 class="ag-h">Por día</h4><table class="itab"><tbody>${days.map(([d, g]) => `<tr><td>${cap(parseYmd(d).toLocaleDateString("es-CL",{weekday:"short",day:"numeric",month:"short"}))}</td><td class="num">${g.n}</td><td class="num"><b>${money(g.t)}</b></td><td style="width:45%">${bar(g.t, max)}</td></tr>`).join("")}</tbody></table>`;
+      }
+    }
+    h += `<p class="notice" style="margin-top:14px">«Generado» suma las reservas cuya hora ya pasó, con el precio del servicio o el monto que corregiste en «Editar». Las marcadas «No vino» no se suman. Solo tú ves esta pestaña.</p>`;
+    $("#inc").innerHTML = h;
+  };
+  body.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { S.incP = b.dataset.p; body.querySelectorAll("[data-p]").forEach(x => x.setAttribute("aria-selected", x === b)); load(); });
+  $("#incd").onchange = e => { if (e.target.value) { S.incRef = e.target.value; load(); } };
+  $("#incb").onchange = e => { S.incB = e.target.value; load(); };
+  $("#inc").onclick = e => { const tr = e.target.closest(".itab.pick tbody tr"); if (!tr) return;
+    const name = tr.cells[0].textContent, b = S.barbers.find(x => x.name === name);
+    S.incB = b ? b.id : (name === "Sin asignar" ? "none" : "all"); load(); };
+  load();
+}
+
+/* Mi cuenta: cambiar contraseña */
+function panelAccount(){
+  const body = $("#pBody");
+  body.innerHTML = `<p class="sub" style="margin-top:-6px">Entraste como <b>${esc(S.user?.email || "")}</b>${S.admin ? " (administrador)" : ""}.</p>
+    <form class="panel-box" id="pwf" style="margin-top:0"><h4>Cambiar contraseña</h4>
+      <div class="row2"><div class="field"><label for="pw1">Nueva contraseña (mínimo 6)</label><input id="pw1" type="password" autocomplete="new-password"></div>
+      <div class="field"><label for="pw2">Repite la contraseña</label><input id="pw2" type="password" autocomplete="new-password"></div></div>
+      <p class="err" id="pwerr"></p><div class="foot"><button class="btn btn-red">Guardar contraseña</button></div></form>`;
+  $("#pwf").addEventListener("submit", async e => {
+    e.preventDefault(); const a = $("#pw1").value, b = $("#pw2").value, err = $("#pwerr");
+    if (a.length < 6) return err.textContent = "Usa al menos 6 caracteres.";
+    if (a !== b) return err.textContent = "Las dos contraseñas no coinciden.";
+    try { await store.changePassword(a); $("#pwf").reset(); err.textContent = ""; toast("Contraseña cambiada."); }
+    catch (er) { err.textContent = er.code === "auth/requires-recent-login" ? "Por seguridad, toca «Salir», vuelve a entrar y cámbiala de nuevo." : "No se pudo cambiar la contraseña."; }
+  });
+}
+
 function panelSettings(){
-  panelRedraw = null;
   const c = S.cfg, body = $("#pBody");
   body.innerHTML = `<form id="sf">
     <div class="row2"><div class="field"><label for="sn">Nombre de la barbería</label><input id="sn" value="${esc(c.name)}" maxlength="50"></div>
@@ -1020,7 +1340,8 @@ function panelSettings(){
     <div class="field"><label for="sd">Cada cuánto se puede empezar una reserva</label><select id="sd" style="max-width:220px">${[15,20,30,60].map(m => `<option value="${m}" ${+c.slotMin===m?"selected":""}>Cada ${m} minutos</option>`).join("")}</select><p class="notice" style="margin:6px 0 0">Con 15 minutos, un servicio de 45 min deja libre la hora justo cuando termina.</p></div>
     <div class="field"><label>Horario por día (desmarca los días que no abres)</label>
       <div class="hrs">${[1,2,3,4,5,6,0].map(i => { const h = dayHours(i); return `<div class="hr" data-day="${i}"><label><input type="checkbox" ${h?"checked":""}> ${cap(DAY_NAMES[i])}</label><input type="time" class="ho" value="${h ? h.open : "10:00"}" aria-label="Abre el ${DAY_NAMES[i]}"><span>a</span><input type="time" class="hc" value="${h ? h.close : "22:00"}" aria-label="Cierra el ${DAY_NAMES[i]}"></div>`; }).join("")}</div></div>
-    <div class="field"><label for="sv">Servicios, uno por línea: Nombre | Precio | Duración. Ej.: Corte + barba | $16.000 | 60 min. El precio es opcional; si no pones duración, dura lo mismo que un turno.</label><textarea id="sv">${esc(c.services)}</textarea></div>
+    <div class="field"><label for="sv">Servicios, uno por línea: Nombre | Precio | Duración. Ej.: Corte + barba | $16.000 | 45 min. El precio se usa para calcular los ingresos; si no pones duración, dura 30 min.</label><textarea id="sv">${esc(c.services)}</textarea>
+      <label class="showall" style="margin-top:10px"><input type="checkbox" id="sprice" ${c.showPrices === true ? "checked" : ""}> Mostrar los precios a los clientes en la página</label></div>
     <div class="field"><label>Logo</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span data-logo style="width:64px;height:64px;display:block"></span><input type="file" id="slf" accept="image/*" class="hidden"><button type="button" class="btn btn-brass btn-sm" id="slb">Subir logo</button>${c.logo ? `<button type="button" class="btn btn-ghost btn-sm" id="slr">Quitar logo</button>` : ""}</div></div>
     <p class="err" id="serr"></p>
     <div class="foot"><button class="btn btn-red" id="ssave">Guardar cambios</button></div></form>`;
@@ -1037,7 +1358,7 @@ function panelSettings(){
       const o = r.querySelector(".ho").value, cl = r.querySelector(".hc").value, d = r.dataset.day;
       if (!o || !cl || toMin(cl) <= toMin(o)) bad = DAY_NAMES[d]; hours[d] = {open:o, close:cl}; });
     const next = { name:$("#sn").value.trim() || DEFAULTS.name, slogan:$("#ss").value.trim(), whatsapp:$("#sw").value.replace(/\D/g,""), address:$("#sa").value.trim(),
-      instagram:$("#si").value.trim(), tiktok:$("#st").value.trim(), hours, slotMin:+$("#sd").value, services:$("#sv").value.trim(), logo };
+      instagram:$("#si").value.trim(), tiktok:$("#st").value.trim(), hours, slotMin:+$("#sd").value, services:$("#sv").value.trim(), showPrices:$("#sprice").checked, logo };
     if (bad) return $("#serr").textContent = `Revisa el ${bad}: la hora de cierre debe ser después de la de apertura.`;
     if (!Object.keys(hours).length) return $("#serr").textContent = "Marca al menos un día de atención.";
     if (next.whatsapp.length < 10) return $("#serr").textContent = "Escribe el WhatsApp con indicativo del país, ej. 56932819363.";
@@ -1146,6 +1467,10 @@ $("#rvForm").addEventListener("submit", async e => {
 /* ---------------- Eventos de reserva ---------------- */
 $("#days").addEventListener("click", e => { const b = e.target.closest(".day"); if (!b || b.disabled) return; S.sel = b.dataset.d; renderCalendar(); renderSlots(); if (innerWidth < 900) $("#slotsTitle").scrollIntoView({behavior:"smooth", block:"start"}); });
 $("#slots").addEventListener("click", e => { const b = e.target.closest(".slot.free"); if (b) openBooking(b.dataset.t); });
+$("#barberChips").addEventListener("click", e => { const c = e.target.closest("[data-barber]"); if (!c) return;
+  S.barber = c.dataset.barber; document.querySelectorAll("#barberChips .chip").forEach(x => x.setAttribute("aria-checked", x === c));
+  if (curSvc() && (!S.sel || !slotsFor(S.sel).some(t => slotState(S.sel, t, curSvc().dur) === "free"))) S.sel = firstOpen() || S.sel;
+  renderCalendar(); renderSlots(); });
 $("#svcChips").addEventListener("click", e => { const c = e.target.closest("[data-svc]"); if (!c) return;
   S.svc = +c.dataset.svc; document.querySelectorAll("#svcChips .chip").forEach(x => x.setAttribute("aria-checked", x === c));
   if (!S.sel || !slotsFor(S.sel).some(t => slotState(S.sel, t, curSvc().dur) === "free")) S.sel = firstOpen() || S.sel;
@@ -1183,7 +1508,11 @@ store.onSlots(ymd(t0), lastDay(), o => {
 }, () => { $("#liveNote").textContent = "No se pudieron cargar los turnos. Recarga la página."; $("#liveNote").className = "notice warn"; });
 store.onMedia(list => { S.media = list; renderMedia(); });
 store.onReviews(list => { S.reviews = list; renderReviews(); });
-store.onAuth(a => { S.admin = a; document.body.classList.toggle("is-admin", a); $("#adminLink").classList.toggle("hidden", a); renderMedia(); renderReviews(); });
+store.onBarbers(list => {
+  S.barbers = list; S.barbersLoaded = true;
+  renderBarbers(); renderCalendar(); renderSlots(); updateRole(); panelRedraw && panelRedraw();
+});
+store.onAuth(u => { S.user = u; updateRole(); });
 
 let lastMin = -1;
 setInterval(() => { renderClock(); const m = nowMin(); if (m !== lastMin) { if (lastMin !== -1) { renderSlots(); renderCalendar(); } lastMin = m; } }, 1000);
