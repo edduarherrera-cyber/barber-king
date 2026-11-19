@@ -844,6 +844,9 @@ const curSvc = () => S.svc == null ? null : (servicesList()[S.svc] || null);
 const minDur = () => Math.min(...servicesList().map(s => s.dur), 999) % 999 || stepMin();
 const svcByLabel = lab => servicesList().find(s => svcLabel(s) === lab || s.n === lab || String(lab).startsWith(s.n + " – "));
 const waLink = msg => `https://wa.me/${String(S.cfg.whatsapp).replace(/\D/g,"")}?text=${encodeURIComponent(msg)}`;
+// WhatsApp de un barbero (si no tiene, se usa el de la barbería)
+const normWa = v => { let d = String(v || "").replace(/\D/g, ""); if (d.length === 9 && d[0] === "9") d = "56" + d; else if (d.length === 8) d = "569" + d; return d; };
+const barberWa = (b, msg) => b && b.whatsapp ? `https://wa.me/${b.whatsapp}?text=${encodeURIComponent(msg)}` : waLink(msg);
 
 function renderClock(){
   const n = now();
@@ -942,9 +945,10 @@ function openBooking(t){
   const date = S.sel, sv = curSvc();
   if (!sv) return;
   const waOnly = (title, text) => {
-    const msg = `Hola, quiero reservar ${sv.n} en ${S.cfg.name} el ${fmtLong(parseYmd(date))} a las ${fmt12(t)}.`;
+    const chosen = S.barber !== "any" ? activeBarbers().find(b => b.id === S.barber) : null;
+    const msg = `Hola, quiero reservar ${sv.n} en ${S.cfg.name} el ${fmtLong(parseYmd(date))} a las ${fmt12(t)}${chosen ? " con " + chosen.name : ""}.`;
     openModal(`<h3>${title}</h3><p class="sub">${text}</p>
-      <div class="foot"><button class="btn btn-ghost" data-close>Volver</button><a class="btn btn-red" href="${waLink(msg)}" target="_blank" rel="noopener">Reservar por WhatsApp</a></div>`);
+      <div class="foot"><button class="btn btn-ghost" data-close>Volver</button><a class="btn btn-red" href="${barberWa(chosen, msg)}" target="_blank" rel="noopener">Reservar por WhatsApp</a></div>`);
   };
   if (S.offline) return waOnly("Reserva por WhatsApp", "En este momento no pudimos conectar con el sistema de reservas. Escríbenos y te confirmamos la hora.");
   if (spanFor(date, t, sv.dur).length > MAX_BLOCKS) return waOnly("Reserva por WhatsApp", `${esc(sv.n)} dura ${fmtDur(sv.dur)}. Para este servicio coordinamos la hora contigo por WhatsApp.`);
@@ -976,7 +980,7 @@ function openBooking(t){
         <h3>Turno reservado</h3>
         <p class="sub">Te esperamos. Llega 5 minutos antes.</p>
         <div class="ticket"><div><span>Día</span><b>${cap(fmtLong(parseYmd(date)))}</b></div><div><span>Hora</span><b>${fmt12(t)}</b></div><div><span>Servicio</span><b>${esc(service)}</b></div>${multi ? `<div><span>Barbero</span><b>${esc(who.name)}</b></div>` : ""}<div><span>A nombre de</span><b>${esc(name)}</b></div></div>
-        <div class="foot"><button class="btn btn-ghost" data-close>Listo</button><a class="btn btn-red" href="${waLink(msg)}" target="_blank" rel="noopener">Avisar por WhatsApp</a></div>`;
+        <div class="foot"><button class="btn btn-ghost" data-close>Listo</button><a class="btn btn-red" href="${barberWa(who, msg)}" target="_blank" rel="noopener">${who.whatsapp && multi ? "Avisar a " + esc(who.name) + " por WhatsApp" : "Avisar por WhatsApp"}</a></div>`;
     } catch (err) {
       b.disabled = false; b.textContent = "Reservar turno";
       $("#be").textContent = err.message === "taken" ? "Ese turno acaba de ser tomado. Cierra y elige otra hora." : "No se pudo reservar. Revisa tu conexión e inténtalo de nuevo.";
@@ -1190,7 +1194,7 @@ function panelBarbers(){
     if (!$("#pBody") || !$("#pBody").dataset) return;
     const list = activeBarbers(), today = ymd(now());
     body.innerHTML = `<p class="sub" style="margin-top:-6px">Cada barbero entra con su correo y contraseña en «Acceso administrador» y solo ve su propia agenda.</p>
-      <ul class="agenda" id="blist">${list.length ? list.map(b => `<li><span class="t" style="font-size:19px">${esc(b.name)}</span><span class="who"><small>${esc(S.staff[b.id]?.email || (b.id === me?.uid ? me.email : ""))}${b.id === me?.uid ? " · eres tú" : ""}</small></span><button class="btn btn-ghost btn-sm" data-delb="${esc(b.id)}">Eliminar</button></li>`).join("")
+      <ul class="agenda" id="blist">${list.length ? list.map(b => `<li data-row="${esc(b.id)}"><span class="t" style="font-size:19px">${esc(b.name)}</span><span class="who"><small>${esc(S.staff[b.id]?.email || (b.id === me?.uid ? me.email : ""))}${b.id === me?.uid ? " · eres tú" : ""}</small><small>${b.whatsapp ? "WhatsApp: " + esc(fmtPhone(b.whatsapp)) : `<span style="color:var(--busy)">Sin WhatsApp: los avisos llegan al número de la barbería</span>`}</small></span><span class="acts"><button class="btn btn-ghost btn-sm" data-wab="${esc(b.id)}">${b.whatsapp ? "Cambiar WhatsApp" : "Agregar WhatsApp"}</button><button class="btn btn-ghost btn-sm" data-delb="${esc(b.id)}">Eliminar</button></span></li>`).join("")
         : `<li style="display:block" class="notice">Aún no hay barberos. Agrega al menos uno para que los clientes puedan reservar.</li>`}</ul>
       <p class="err" id="blerr"></p>
       ${note}
@@ -1198,12 +1202,22 @@ function panelBarbers(){
         <h4>Agregar barbero</h4>
         <div class="row2"><div class="field"><label for="nbn">Nombre (lo ven los clientes)</label><input id="nbn" maxlength="30" placeholder="Ej.: Carlos"></div>
         <div class="field"><label for="nbe">Correo para entrar</label><input id="nbe" type="email" placeholder="carlos@gmail.com"></div></div>
-        <div class="row2"><div class="field"><label for="nbp">Contraseña inicial (mínimo 6 caracteres)</label><input id="nbp" type="text" autocomplete="off"></div>
-        <div class="field" style="align-self:end"><button class="btn btn-red" id="nbgo">Crear barbero</button></div></div>
+        <div class="row2"><div class="field"><label for="nbw">WhatsApp del barbero (para que le lleguen sus avisos)</label><input id="nbw" type="tel" inputmode="tel" placeholder="9 1234 5678"></div>
+        <div class="field"><label for="nbp">Contraseña inicial (mínimo 6 caracteres)</label><input id="nbp" type="text" autocomplete="off"></div></div>
+        <button class="btn btn-red" id="nbgo">Crear barbero</button>
         <p class="err" id="nberr"></p>
       </form>
-      ${me && !list.some(b => b.id === me.uid) ? `<form class="panel-box" id="mef"><h4>¿Tú también atiendes clientes?</h4><div class="row2"><div class="field"><label for="men">Tu nombre como barbero</label><input id="men" maxlength="30"></div><div class="field" style="align-self:end"><button class="btn btn-ghost">Agregarme como barbero</button></div></div></form>` : ""}`;
+      ${me && !list.some(b => b.id === me.uid) ? `<form class="panel-box" id="mef"><h4>¿Tú también atiendes clientes?</h4><div class="row2"><div class="field"><label for="men">Tu nombre como barbero</label><input id="men" maxlength="30"></div><div class="field"><label for="mew">Tu WhatsApp</label><input id="mew" type="tel" inputmode="tel" placeholder="9 1234 5678"></div></div><button class="btn btn-ghost">Agregarme como barbero</button></form>` : ""}`;
     $("#blist").onclick = async e => {
+      const w = e.target.closest("[data-wab]"), ws = e.target.closest("[data-wasave]"), wc = e.target.closest("[data-wacancel]");
+      if (w) { const b = S.barbers.find(x => x.id === w.dataset.wab), li = w.closest("li");
+        li.innerHTML = `<span class="t" style="font-size:19px">${esc(b.name)}</span><span class="who"><input id="waIn" type="tel" inputmode="tel" placeholder="9 1234 5678" value="${esc(b.whatsapp ? fmtPhone(b.whatsapp) : "")}" style="max-width:220px"><small>Número de WhatsApp de ${esc(b.name)}. Déjalo vacío para usar el de la barbería.</small></span><span class="acts"><button class="btn btn-red btn-sm" data-wasave="${esc(b.id)}">Guardar</button><button class="btn btn-ghost btn-sm" data-wacancel>Cancelar</button></span>`;
+        $("#waIn").focus(); return; }
+      if (wc) { draw(); return; }
+      if (ws) { const b = S.barbers.find(x => x.id === ws.dataset.wasave), v = normWa($("#waIn").value);
+        if (v && v.length < 10) return $("#blerr").textContent = "Escribe el WhatsApp completo, por ejemplo 9 1234 5678.";
+        try { const { id: _x, ...data } = b; await store.saveBarber(b.id, {...data, whatsapp: v}); $("#blerr").textContent = ""; document.activeElement.blur(); draw(); toast(v ? `WhatsApp de ${b.name} guardado.` : "Se usará el WhatsApp de la barbería."); }
+        catch { toast("No se pudo guardar."); } return; }
       const d = e.target.closest("[data-delb]"); if (!d) return;
       const id = d.dataset.delb, b = S.barbers.find(x => x.id === id);
       const future = Object.entries(S.slots).filter(([k, s]) => s.barber === id && s.status === "booked" && (!s.ref || s.ref === k) && s.date >= today).length;
@@ -1213,7 +1227,8 @@ function panelBarbers(){
     };
     $("#nbf").addEventListener("submit", async e => {
       e.preventDefault();
-      const name = $("#nbn").value.trim(), email = $("#nbe").value.trim().toLowerCase(), pass = $("#nbp").value, err = $("#nberr");
+      const name = $("#nbn").value.trim(), email = $("#nbe").value.trim().toLowerCase(), pass = $("#nbp").value, wa = normWa($("#nbw").value), err = $("#nberr");
+      if (wa && wa.length < 10) return err.textContent = "Escribe el WhatsApp completo, por ejemplo 9 1234 5678.";
       if (name.length < 2) return err.textContent = "Escribe el nombre del barbero.";
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return err.textContent = "Escribe un correo válido.";
       if (email === ADMIN_EMAIL.toLowerCase()) return err.textContent = "Ese es el correo del administrador. Para atender como barbero usa «Agregarme como barbero».";
@@ -1225,8 +1240,9 @@ function panelBarbers(){
         if (prev) { uid = prev[0]; text = `<b>${esc(name)}</b> volvió a tener acceso. Entra con su correo <b>${esc(email)}</b> y la contraseña que ya tenía.`; }
         else { uid = await store.createAccount(email, pass); text = `Listo. Pásale a <b>${esc(name)}</b> sus datos para entrar: correo <b>${esc(email)}</b> y contraseña <b>${esc(pass)}</b>. Puede cambiarla en «Mi cuenta».`; }
         await store.saveStaff(uid, {email, name});
-        await store.saveBarber(uid, {name, active:true, order:Date.now()});
-        note = `<div class="okbox">${text}</div>`; draw();
+        const old = S.barbers.find(x => x.id === uid);
+        await store.saveBarber(uid, {name, active:true, order:Date.now(), whatsapp: wa || old?.whatsapp || ""});
+        note = `<div class="okbox">${text}</div>`; document.activeElement.blur(); draw();
       } catch (er) {
         $("#nbgo").disabled = false;
         const c = er.code || "";
@@ -1236,9 +1252,9 @@ function panelBarbers(){
       }
     });
     $("#mef") && $("#mef").addEventListener("submit", async e => {
-      e.preventDefault(); const name = $("#men").value.trim();
+      e.preventDefault(); const name = $("#men").value.trim(), wa = normWa($("#mew").value);
       if (name.length < 2) return;
-      try { await store.saveStaff(me.uid, {email: me.email, name}); await store.saveBarber(me.uid, {name, active:true, order:Date.now()}); note = ""; toast("Ahora también apareces como barbero."); }
+      try { await store.saveStaff(me.uid, {email: me.email, name}); await store.saveBarber(me.uid, {name, active:true, order:Date.now(), whatsapp: wa}); document.activeElement.blur(); note = ""; toast("Ahora también apareces como barbero."); }
       catch { toast("No se pudo guardar."); }
     });
   };
